@@ -14,9 +14,8 @@ export const fetchProducts = async ({ params }) => {
       params: sanitizedParams,
     });
 
-    // console.log("API response inside fetchProducts:", response);
+    console.log("API response inside fetchProducts:", response);
 
-    // Return only the nested data layer needed by ProductsTable
     return response;
   } catch (error) {
     console.error("Error fetching products:", error);
