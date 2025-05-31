@@ -160,11 +160,11 @@ const BrandsTable = ({ setBrandsLength, params }) => {
       render: (_, row) => (
         <ActionMenu
           options={[
-            {
-              label: "View Details",
-              icon: Eye,
-              action: () => onNavigateDetail(row),
-            },
+            // {
+            //   label: "View Details",
+            //   icon: Eye,
+            //   action: () => onNavigateDetail(row),
+            // },
             
             {
               label: "Edit Brand",
