@@ -9,8 +9,8 @@ export const endpoints = {
      //sub-category
      subcategory:"api/sub-category",
     //admins
-admin_register: "api/auth/admin/register",
-admin: "api/auth/admin",
+   admin_register: "api/auth/admin/register",
+   admin: "api/auth/admin",
 //blogs
-blogs :"/api/blogs"
+  blogs :"/api/blogs"
 }
