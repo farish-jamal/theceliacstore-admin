@@ -14,7 +14,7 @@ export const fetchProducts = async ({ params }) => {
       params: sanitizedParams,
     });
 
-    console.log("API response inside fetchProducts:", response);
+    // console.log("API response inside fetchProducts:", response);
 
     return response;
   } catch (error) {
