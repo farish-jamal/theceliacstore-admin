@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,23 @@ import Typography from "@/components/typography";
 import NavbarItem from "@/components/navbar/navbar_item";
 import { createProduct } from "./helpers/createProduct";
 import { getItem } from "@/utils/local_storage";
+import Select from "react-select";
+import { fetchSubCategory } from "@/pages/sub_categories/helpers/fetchsub-cat";
+
+// ✅ Tag options
+const TAG_OPTIONS = [
+  { value: "no_palm_oil", label: "No Palm Oil" },
+  { value: "organic", label: "Organic" },
+  { value: "no_gmo", label: "No GMO" },
+  { value: "no_artificial_flavors", label: "No Artificial Flavours" },
+  { value: "vegan", label: "Vegan" },
+  { value: "sugar_free", label: "Sugar Free" },
+  { value: "gluten_free", label: "Gluten Free" },
+  { value: "soya_free", label: "Soya Free" },
+  { value: "no_preservatives", label: "No Preservatives" },
+  { value: "lactose_free", label: "Lactose Free" },
+  { value: "no_flavour_enhancer", label: "No Flavour Enhancer" },
+];
 
 const AddProductCard = () => {
   const navigate = useNavigate();
@@ -24,6 +41,17 @@ const AddProductCard = () => {
     imagePreviews: [],
     bannerImage: null,
     bannerPreview: null,
+    tags: [],
+    sub_category: "",
+  });
+
+  const {
+    data: apiSubcategoriesResponse,
+    isLoading: isSubcategoriesLoading,
+    error: subcategoriesError,
+  } = useQuery({
+    queryKey: ["subcategory"],
+    queryFn: fetchSubCategory,
   });
 
   const mutation = useMutation({
@@ -31,16 +59,13 @@ const AddProductCard = () => {
     onSuccess: (res) => {
       if (res?.response?.success) {
         toast.success("Product created successfully");
-        console.log("✅ API Success:", res.response.data);
         navigate("/dashboard/products");
       } else {
         toast.error(res?.response?.data?.message || "Failed to create product");
-        console.error(" API Error:", res);
       }
     },
-    onError: (error) => {
+    onError: () => {
       toast.error("Failed to create product");
-      console.error("Network Error:", error);
     },
   });
 
@@ -81,40 +106,45 @@ const AddProductCard = () => {
     }
   };
 
+  const handleTagChange = (selectedOptions) => {
+    const tags = selectedOptions.map((option) => option.value);
+    setFormData((prev) => ({ ...prev, tags }));
+  };
+
   const handleSubmit = () => {
     const userId = getItem("userId");
-    console.log("User ID from storage:", userId);
-        if (!userId) {
+    if (!userId) {
       toast.error("User ID not found. Please log in again.");
       return;
     }
-  
+
     const form = new FormData();
     form.append("name", formData.name);
     form.append("small_description", formData.description);
     form.append("price", formData.price);
     form.append("discounted_price", formData.saleprice);
+    form.append("sub_category", formData.sub_category);
+    formData.tags.forEach((tag) => {
+      form.append("tags", tag);
+    });
     formData.images.forEach((image) => {
       form.append("images", image);
     });
-  
     if (formData.bannerImage) {
       form.append("banner_image", formData.bannerImage);
     }
     form.append("user_id", userId);
     form.append("created_by_admin", userId);
-    console.log("FormData Preview:");
-    for (const [key, value] of form.entries()) {
-      console.log(`${key}:`, value);
-    }
-  
+
     mutation.mutate({ formData: form, params: { user_id: userId } });
   };
-  
 
   return (
     <>
-      <NavbarItem title="Add Product" breadcrumbs={[{ title: "Add Product", isNavigation: false }]} />
+      <NavbarItem
+        title="Add Product"
+        breadcrumbs={[{ title: "Add Product", isNavigation: false }]}
+      />
       <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border">
         <Typography variant="h3">Add Product</Typography>
 
@@ -165,6 +195,45 @@ const AddProductCard = () => {
           />
         </div>
 
+        {/* Tags */}
+        <div className="space-y-2">
+          <Label>Tags</Label>
+          <Select
+            options={TAG_OPTIONS}
+            isMulti
+            onChange={handleTagChange}
+            className="react-select-container"
+            classNamePrefix="react-select"
+            placeholder="Select tags..."
+          />
+        </div>
+
+        {/* Subcategory */}
+        <div className="space-y-2">
+          <Label>Sub-Category</Label>
+          <select
+            name="sub_category"
+            onChange={handleChange}
+            value={formData.sub_category}
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          >
+            <option value="">-- Select Subcategory --</option>
+            {Array.isArray(apiSubcategoriesResponse?.data) &&
+              apiSubcategoriesResponse.data.map((sub) => (
+                <option key={sub._id} value={sub._id}>
+                  {sub.name}
+                </option>
+              ))}
+          </select>
+
+          {isSubcategoriesLoading && (
+            <p className="text-sm text-gray-500">Loading subcategories...</p>
+          )}
+          {subcategoriesError && (
+            <p className="text-sm text-red-500">Failed to load subcategories</p>
+          )}
+        </div>
+
         {/* Product Images */}
         <div className="space-y-2">
           <Label>Product Images</Label>
@@ -204,7 +273,7 @@ const AddProductCard = () => {
           )}
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <div className="pt-4">
           <Button className="w-full" onClick={handleSubmit} disabled={mutation.isLoading}>
             {mutation.isLoading ? "Submitting..." : "Submit Product"}

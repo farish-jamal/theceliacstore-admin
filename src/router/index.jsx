@@ -20,6 +20,7 @@ import AddAdminCard from '@/pages/admin/components/AddAdminCard';
 import Blogs from '@/pages/blogs';
 import SubCategories from '@/pages/sub_categories';
 import AddSubCategoryCard from '@/pages/sub_categories/components/AddSubCategoryCard';
+import CategoryDetails from '@/pages/categories/components/category_details';
 
 const Router = () => {
   return (
@@ -47,6 +48,8 @@ const Router = () => {
       {/* Categories Route */}
       <Route path="/dashboard/categories" element={<Categories />} />
       <Route path="/dashboard/categories/add" element={<AddCategoryCard />} />
+      <Route path="/dashboard/category/:id" element={<CategoryDetails />} />
+
       {/* Sub Category Route */}
       <Route path="/dashboard/subcategory" element={<SubCategories />} />
       <Route path="/dashboard/subcategory/add" element={< AddSubCategoryCard/>} />

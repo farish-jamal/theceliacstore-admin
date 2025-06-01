@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,9 +10,9 @@ import Typography from "@/components/typography";
 import NavbarItem from "@/components/navbar/navbar_item";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createCategory } from "../helpers/createProduct";
-
-// 🗑️ Lucide icon
 import { XCircle } from "lucide-react";
+
+
 
 const AddCategoryCard = () => {
   const navigate = useNavigate();
@@ -69,7 +68,6 @@ const AddCategoryCard = () => {
     const updatedImages = [...formData.images];
     const updatedPreviews = [...imagePreviews];
 
-    // Revoke object URL
     URL.revokeObjectURL(updatedPreviews[index].url);
 
     updatedImages.splice(index, 1);
@@ -81,7 +79,6 @@ const AddCategoryCard = () => {
     }));
     setImagePreviews(updatedPreviews);
   };
-
   const handleSubmit = () => {
     if (!formData.name.trim()) {
       toast.error("Category name is required");
@@ -94,6 +91,7 @@ const AddCategoryCard = () => {
     form.append("discount_label_text", formData.discount_label_text);
     form.append("newly_launched", formData.newly_launched);
 
+
     formData.images.forEach((file) => {
       form.append("images", file);
     });
@@ -103,7 +101,6 @@ const AddCategoryCard = () => {
 
   useEffect(() => {
     return () => {
-      // Clean up object URLs
       imagePreviews.forEach((img) => URL.revokeObjectURL(img.url));
     };
   }, [imagePreviews]);

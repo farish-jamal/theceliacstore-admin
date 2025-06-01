@@ -8,17 +8,17 @@ import dayjs from "dayjs";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import Typography from "@/components/typography";
-import { fetchProductById } from "../helpers/fetchProductById";
 import NavbarItem from "@/components/navbar/navbar_item";
+import { fetchCategoryById } from "../../helpers/fetchCategorybyId";
 
-const ProductDetails = () => {
+const CategoryDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [previewImg, setPreviewImg] = useState(null);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product_details", id],
-    queryFn: () => fetchProductById({ id }),
+    queryFn: () => fetchCategoryById({ id }),
     select: (data) => data.response?.data,
     enabled: !!id,
   });
@@ -54,11 +54,12 @@ const ProductDetails = () => {
           <Dialog open={!!previewImg} onOpenChange={() => setPreviewImg(null)}>
             <DialogTrigger asChild>
               <img
-                src={product.banner_image}
+                src={product.images}
                 alt={product.name}
                 className="w-full h-[360px] object-contain rounded-xl border cursor-pointer shadow-sm"
-                onClick={() => setPreviewImg(product.banner_image)}
+                onClick={() => setPreviewImg(product.images)}
               />
+              
             </DialogTrigger>
             <DialogContent className="p-0 max-w-xl">
               <img
@@ -97,16 +98,16 @@ const ProductDetails = () => {
             {product.is_best_seller && (
               <Badge variant="secondary">Best Seller</Badge>
             )}
-            <Badge variant={product.instock ? "default" : "destructive"}>
-  {product.instock ? "In Stock" : "Out of Stock"}
-</Badge>
+            {/* <Badge variant={product.instock ? "default" : "destructive"}>
+              {product.inventory > 0 ? "In Stock" : "Out of Stock"}
+            </Badge> */}
           </div>
 
           <p className="text-muted-foreground text-sm">
-            {product.small_description}
+           {product.description}
           </p>
 
-          <div className="flex items-center gap-3 text-xl">
+          {/* <div className="flex items-center gap-3 text-xl">
             <span className="text-primary font-medium">
               ₹{product.discounted_price}
             </span>
@@ -115,22 +116,11 @@ const ProductDetails = () => {
                 ₹{product.price}
               </span>
             )}
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          {Array.isArray(product.tags) && product.tags.length > 0 && (
-  <div className="flex flex-wrap gap-2">Tags :
-    {product.tags.map((tag, index) => (
-      <Badge key={index} variant="secondary">
-        {tag
-          .replace(/_/g, " ")       
-          .replace(/\b\w/g, c => c.toUpperCase())
-        }
-      </Badge>
-    ))}
-  </div>
-)}           
- <div  />
+          <Detail label="Newly Launched" value={product.newly_launched ? "Yes" : "No"} />
+          <Detail label="Discount Label" value={product.discount_label_text} />
             {/* <Detail label="Brand" value={product.uploaded_by_brand} /> */}
             {/* <Detail
               label="Expiry Date"
@@ -186,4 +176,4 @@ const Detail = ({ label, value }) => (
   </div>
 );
 
-export default ProductDetails;
+export default CategoryDetails;

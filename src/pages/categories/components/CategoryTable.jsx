@@ -71,7 +71,7 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
   };
 
   const onNavigateDetails = (category) => {
-    navigate(`/dashboard/categorys/${category._id}`);
+    navigate(`/dashboard/category/${category._id}`);
   };
 
   const onNavigateInventoryHistory = (category) => {
