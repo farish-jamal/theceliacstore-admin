@@ -1,17 +1,20 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Select from "react-select";
+import { XCircle } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { XCircle } from "lucide-react";
 import Typography from "@/components/typography";
 import NavbarItem from "@/components/navbar/navbar_item";
-import { createProduct } from "./helpers/createProduct";
+
 import { getItem } from "@/utils/local_storage";
-import Select from "react-select";
+import { updateProduct } from "../helpers/updateProduct";
+import { createProduct } from "../helpers/createProduct";
 import { fetchSubCategory } from "@/pages/sub_categories/helpers/fetchsub-cat";
 
 // ✅ Tag options
@@ -19,7 +22,7 @@ const TAG_OPTIONS = [
   { value: "no_palm_oil", label: "No Palm Oil" },
   { value: "organic", label: "Organic" },
   { value: "no_gmo", label: "No GMO" },
-  { value: "no_artificial_flavors", label: "No Artificial Flavours" },
+  { value: "no_aritificial_flavors", label: "No Artificial Flavours" },
   { value: "vegan", label: "Vegan" },
   { value: "sugar_free", label: "Sugar Free" },
   { value: "gluten_free", label: "Gluten Free" },
@@ -29,7 +32,7 @@ const TAG_OPTIONS = [
   { value: "no_flavour_enhancer", label: "No Flavour Enhancer" },
 ];
 
-const AddProductCard = () => {
+const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -45,6 +48,7 @@ const AddProductCard = () => {
     sub_category: "",
   });
 
+  // Fetch subcategories
   const {
     data: apiSubcategoriesResponse,
     isLoading: isSubcategoriesLoading,
@@ -54,7 +58,33 @@ const AddProductCard = () => {
     queryFn: fetchSubCategory,
   });
 
-  const mutation = useMutation({
+  // Initialize form with data on edit mode
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.small_description || "",
+        price: initialData.price || "",
+        saleprice: initialData.discounted_price || "",
+        images: [], // New uploads only
+        imagePreviews: Array.isArray(initialData.images)
+          ? initialData.images.map((imgUrl) => ({
+              file: null, // For consistent structure
+              preview: imgUrl,
+              isFromServer: true, // ✅ mark to prevent deletion from unsaved server data
+            }))
+          : [],
+        bannerImage: null,
+        bannerPreview: initialData.banner_image || null,
+        tags: Array.isArray(initialData.tags) ? initialData.tags : [],
+        sub_category: initialData.sub_category || "",
+      });
+    }
+  }, [initialData, isEditMode]);
+  
+
+  // Mutations for create and edit
+  const createMutation = useMutation({
     mutationFn: ({ formData, params }) => createProduct(formData, params),
     onSuccess: (res) => {
       if (res?.response?.success) {
@@ -69,11 +99,27 @@ const AddProductCard = () => {
     },
   });
 
+  const editMutation = useMutation({
+    mutationFn: ({ id, payload }) => updateProduct({ id, payload }),
+    onSuccess: (res) => {
+      if (res?.response?.success) {
+        toast.success("Product updated successfully");
+        navigate("/dashboard/products");
+      } else {
+        toast.error(res?.response?.data?.message || "Failed to update product");
+      }
+    },
+    onError: () => {
+      toast.error("Failed to update product");
+    },
+  });
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle new image uploads
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     const previews = files.map((file) => ({
@@ -87,6 +133,7 @@ const AddProductCard = () => {
     }));
   };
 
+  // Remove image from previews and files
   const removeImage = (index) => {
     setFormData((prev) => ({
       ...prev,
@@ -95,6 +142,7 @@ const AddProductCard = () => {
     }));
   };
 
+  // Handle banner image upload
   const handleBannerChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -106,48 +154,59 @@ const AddProductCard = () => {
     }
   };
 
+  // Handle tag selection change
   const handleTagChange = (selectedOptions) => {
-    const tags = selectedOptions.map((option) => option.value);
+    const tags = selectedOptions ? selectedOptions.map((option) => option.value) : [];
     setFormData((prev) => ({ ...prev, tags }));
   };
 
+  // Submit handler
   const handleSubmit = () => {
     const userId = getItem("userId");
     if (!userId) {
       toast.error("User ID not found. Please log in again.");
       return;
     }
-
+  
     const form = new FormData();
     form.append("name", formData.name);
     form.append("small_description", formData.description);
     form.append("price", formData.price);
     form.append("discounted_price", formData.saleprice);
     form.append("sub_category", formData.sub_category);
-    formData.tags.forEach((tag) => {
-      form.append("tags", tag);
-    });
-    formData.images.forEach((image) => {
-      form.append("images", image);
-    });
-    if (formData.bannerImage) {
-      form.append("banner_image", formData.bannerImage);
-    }
     form.append("user_id", userId);
     form.append("created_by_admin", userId);
-
-    mutation.mutate({ formData: form, params: { user_id: userId } });
+  
+    // Append tags
+    formData.tags.forEach((tag) => form.append("tags", tag));
+  
+    // Append product images (if any)
+    formData.images.forEach((image) => {
+      if (image instanceof File) {
+        form.append("images", image);
+      }
+    });
+  
+    // Append banner image (only if valid)
+    if (formData.bannerImage instanceof File) {
+      form.append("banner_image", formData.bannerImage);
+    }
+  
+    // Call appropriate mutation
+    if (isEditMode) {
+      editMutation.mutate({ id: initialData._id, payload: form });
+    } else {
+      createMutation.mutate({ formData: form, params: { user_id: userId } });
+    }
   };
+  
+  
 
   return (
     <>
-      <NavbarItem
-        title="Add Product"
-        breadcrumbs={[{ title: "Add Product", isNavigation: false }]}
-      />
-      <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border">
-        <Typography variant="h3">Add Product</Typography>
+      
 
+      <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border">
         {/* Name */}
         <div className="space-y-2">
           <Label>Name</Label>
@@ -205,6 +264,7 @@ const AddProductCard = () => {
             className="react-select-container"
             classNamePrefix="react-select"
             placeholder="Select tags..."
+            value={TAG_OPTIONS.filter((option) => formData.tags.includes(option.value))}
           />
         </div>
 
@@ -235,49 +295,84 @@ const AddProductCard = () => {
         </div>
 
         {/* Product Images */}
-        <div className="space-y-2">
-          <Label>Product Images</Label>
-          <Input type="file" accept="image/*" multiple onChange={handleImageChange} />
-          {formData.imagePreviews.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-              {formData.imagePreviews.map((img, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={img.preview}
-                    alt={`img-${index}`}
-                    className="w-full h-32 object-contain rounded border"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 bg-white rounded-full p-1 shadow text-red-500 hover:text-red-600"
-                  >
-                    <XCircle size={18} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+       {/* Product Images */}
+<div className="space-y-2">
+  <Label>Product Images</Label>
+  <Input
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={handleImageChange}
+  />
+  {formData.imagePreviews.length > 0 && (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+      {formData.imagePreviews.map((img, index) => (
+        <div key={index} className="relative group">
+          <img
+            src={img.preview}
+            alt={`preview-${index}`}
+            className="w-full h-32 object-contain border rounded"
+          />
+          <button
+            type="button"
+            onClick={() => removeImage(index)}
+            className="absolute top-1 right-1 bg-white rounded-full p-1 shadow text-red-500 hover:text-red-600"
+            title="Remove image"
+          >
+            <XCircle size={18} />
+          </button>
         </div>
+      ))}
+    </div>
+  )}
+</div>
 
-        {/* Banner Image */}
-        <div className="space-y-2">
-          <Label>Banner Image</Label>
-          <Input type="file" accept="image/*" onChange={handleBannerChange} />
-          {formData.bannerPreview && (
-            <img
-              src={formData.bannerPreview}
-              alt="Banner Preview"
-              className="mt-2 w-full h-48 object-contain border rounded"
-            />
-          )}
-        </div>
+{/* Banner Image */}
+<div className="space-y-2">
+  <Label>Banner Image</Label>
+  <Input
+    type="file"
+    accept="image/*"
+    onChange={handleBannerChange}
+  />
+  {formData.bannerPreview && (
+    <div className="relative mt-2">
+      <img
+        src={formData.bannerPreview}
+        alt="Banner Preview"
+        className="w-full h-48 object-contain border rounded"
+      />
+      <button
+        type="button"
+        onClick={() =>
+          setFormData((prev) => ({
+            ...prev,
+            bannerImage: null,
+            bannerPreview: null,
+          }))
+        }
+        className="absolute top-2 right-2 bg-white rounded-full p-1 shadow text-red-500 hover:text-red-600"
+        title="Remove banner image"
+      >
+        <XCircle size={20} />
+      </button>
+    </div>
+  )}
+</div>
+
 
         {/* Submit */}
         <div className="pt-4">
-          <Button className="w-full" onClick={handleSubmit} disabled={mutation.isLoading}>
-            {mutation.isLoading ? "Submitting..." : "Submit Product"}
-          </Button>
+        <Button
+  onClick={handleSubmit}
+  className="w-full"
+  disabled={createMutation.isPending || editMutation.isPending}
+>
+  {(createMutation.isPending || editMutation.isPending)
+    ? (isEditMode ? "Updating..." : "Adding...")
+    : (isEditMode ? "Update Product" : "Add Product")}
+</Button>
+
         </div>
       </div>
     </>

@@ -14,8 +14,6 @@ import { deleteProduct } from "./helpers/deleteProduct";
 const ProductsTable = ({ setProductLength, params, setParams }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-
   const {
     data: apiProductsResponse,
     isLoading,
@@ -67,7 +65,7 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
   const total = apiProductsResponse?.total || 0;
 
   const onNavigateToEdit = (product) => {
-    navigate(`/dashboard/products/edit/${product._id}`);
+    navigate(`/dashboard/product/edit/${product._id}`);
   };
 
   const onNavigateDetails = (product) => {

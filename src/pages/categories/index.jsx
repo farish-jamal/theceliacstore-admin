@@ -28,7 +28,7 @@ const Categories = () => {
   };
 
   const onAdd = () => {
-    navigate("/dashboard/categories/add"); 
+    navigate("/dashboard/category/add"); 
   };
 
   const onRowsPerPageChange = (newRowsPerPage) => {

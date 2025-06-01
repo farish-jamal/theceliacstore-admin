@@ -7,14 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import Typography from "@/components/typography";
-import NavbarItem from "@/components/navbar/navbar_item";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createCategory } from "../helpers/createProduct";
 import { XCircle } from "lucide-react";
+import { createCategory } from "../../helpers/createProduct";
+import { updateCategory } from "../../helpers/updateCategory";
 
-
-
-const AddCategoryCard = () => {
+const AddCategoryCard = ({ initialData = {}, isEditMode = false }) => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -23,99 +21,137 @@ const AddCategoryCard = () => {
     discount_label_text: "",
     newly_launched: false,
     images: [],
+    imagePreviews: [],
   });
 
-  const [imagePreviews, setImagePreviews] = useState([]);
+  // Load initial data for edit mode
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        discount_label_text: initialData.discount_label_text || "",
+        newly_launched: initialData.newly_launched || false,
+        images: [],
+        imagePreviews: Array.isArray(initialData.images)
+          ? initialData.images.map((imgUrl) => ({
+              file: null,
+              preview: imgUrl,
+              isFromServer: true,
+            }))
+          : [],
+      });
+    }
+  }, [isEditMode, initialData]);
 
-  const mutation = useMutation({
+  // Create category
+  const createMutation = useMutation({
     mutationFn: (data) => createCategory(data),
     onSuccess: () => {
       toast.success("Category created successfully!");
       navigate("/dashboard/categories");
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to create category");
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to create category";
+
+      toast.error(message);
+    },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, payload }) => updateCategory({ id, payload }),
+    onSuccess: (res) => {
+      if (res?.response?.success) {
+        toast.success("Category updated successfully!");
+        navigate("/dashboard/categories");
+      } else {
+        toast.error(
+          res?.response?.data?.message || "Failed to update category"
+        );
+      }
+    },
+    onError: () => {
+      toast.error("Failed to update category");
     },
   });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === "checkbox" ? checked : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-
     const previews = files.map((file) => ({
       file,
-      url: URL.createObjectURL(file),
+      preview: URL.createObjectURL(file),
     }));
-
     setFormData((prev) => ({
       ...prev,
       images: [...prev.images, ...files],
+      imagePreviews: [...prev.imagePreviews, ...previews],
     }));
-
-    setImagePreviews((prev) => [...prev, ...previews]);
   };
 
   const handleImageRemove = (index) => {
-    const updatedImages = [...formData.images];
-    const updatedPreviews = [...imagePreviews];
-
-    URL.revokeObjectURL(updatedPreviews[index].url);
-
-    updatedImages.splice(index, 1);
-    updatedPreviews.splice(index, 1);
-
     setFormData((prev) => ({
       ...prev,
-      images: updatedImages,
+      images: prev.images.filter((_, i) => i !== index),
+      imagePreviews: prev.imagePreviews.filter((_, i) => i !== index),
     }));
-    setImagePreviews(updatedPreviews);
   };
+
   const handleSubmit = () => {
-    if (!formData.name.trim()) {
+    const { name, description, discount_label_text } = formData;
+
+    if (!name.trim()) {
       toast.error("Category name is required");
+      return;
+    }
+    if (!description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+    if (!discount_label_text.trim()) {
+      toast.error("Discount label text is required");
       return;
     }
 
     const form = new FormData();
-    form.append("name", formData.name);
-    form.append("description", formData.description);
-    form.append("discount_label_text", formData.discount_label_text);
+    form.append("name", name);
+    form.append("description", description);
+    form.append("discount_label_text", discount_label_text);
     form.append("newly_launched", formData.newly_launched);
 
-
+    // Append images if selected
     formData.images.forEach((file) => {
-      form.append("images", file);
+      if (file instanceof File) {
+        form.append("images", file);
+      }
     });
 
-    mutation.mutate(form);
+    if (isEditMode) {
+      editMutation.mutate({ id: initialData._id, payload: form });
+    } else {
+      createMutation.mutate(form);
+    }
   };
 
   useEffect(() => {
     return () => {
-      imagePreviews.forEach((img) => URL.revokeObjectURL(img.url));
+      formData.imagePreviews.forEach((img) => {
+        if (!img.isFromServer) URL.revokeObjectURL(img.preview);
+      });
     };
-  }, [imagePreviews]);
+  }, [formData.imagePreviews]);
 
   return (
     <>
-      <NavbarItem
-        title="Add Category"
-        breadcrumbs={[{ title: "Add Category", isNavigation: false }]}
-      />
       <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border border-gray-200">
-        <Typography variant="h3" className="mb-4">
-          Add Category
-        </Typography>
-
         <div className="space-y-2">
           <Label>Name</Label>
           <Input
@@ -148,6 +184,7 @@ const AddCategoryCard = () => {
           />
         </div>
 
+        {/* Image upload */}
         <div className="space-y-2">
           <Label>Category Images</Label>
           <Input
@@ -156,16 +193,15 @@ const AddCategoryCard = () => {
             multiple
             onChange={handleImageChange}
           />
-
-          {imagePreviews.length > 0 && (
+          {formData.imagePreviews.length > 0 && (
             <div className="flex gap-4 flex-wrap mt-4">
-              {imagePreviews.map((img, index) => (
+              {formData.imagePreviews.map((img, index) => (
                 <div
                   key={index}
                   className="relative w-32 h-32 border rounded overflow-hidden"
                 >
                   <img
-                    src={img.url}
+                    src={img.preview}
                     alt={`Preview ${index}`}
                     className="w-full h-full object-contain"
                   />
@@ -184,7 +220,7 @@ const AddCategoryCard = () => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Label>Newly Launched</Label>
+          <Label htmlFor="newly_launched">Newly Launched</Label>
           <Checkbox
             id="newly_launched"
             checked={formData.newly_launched}
@@ -201,9 +237,15 @@ const AddCategoryCard = () => {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={mutation.isLoading}
+            disabled={createMutation.isPending || editMutation.isPending}
           >
-            {mutation.isLoading ? "Submitting..." : "Submit Category"}
+            {createMutation.isPending || editMutation.isPending
+              ? isEditMode
+                ? "Updating..."
+                : "Adding..."
+              : isEditMode
+              ? "Update Category"
+              : "Add Category"}
           </Button>
         </div>
       </div>

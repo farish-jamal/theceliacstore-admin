@@ -67,7 +67,7 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
   const total = apicategorysResponse?.data?.total || 0;
 
   const onNavigateToEdit = (category) => {
-    navigate(`/dashboard/categorys/edit/${category._id}`);
+    navigate(`/dashboard/category/edit/${category._id}`);
   };
 
   const onNavigateDetails = (category) => {
