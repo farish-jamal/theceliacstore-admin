@@ -22,7 +22,9 @@ import {
   BadgeInfo,
   MessageSquarePlus,
   BadgePlus,
-  CopyPlus
+  CopyPlus,
+  Package2,
+  LayoutGridIcon
 } from "lucide-react";
 import { getItem } from "../local_storage";
 const userName = getItem("userName") || "Admin";
@@ -80,12 +82,20 @@ export const data = {
       roles: ["super_admin", "admin"],
     },
     {
+      title: "Bundles",
+      url: "/dashboard/bundles",
+      icon: LayoutGridIcon,
+      isActive: true,
+      items: [],
+      roles: ["super_admin", "admin"],
+    },
+    {
       title: "Brands",
       url: "/dashboard/brands",
       icon: Store,
       isActive: true,
       items: [],
-      roles: ["super_admin", "admin"],
+      roles: [ "admin","super_admin"],
 
       
     },
@@ -140,4 +150,13 @@ export const data = {
     //   roles: ["super_admin", "admin",],
     // },
   ],
+  management: [
+    {
+      title: "Orders",
+      name: "Orders",
+      url: "/dashboard/orders",
+      icon: Package2,
+      roles: ["super_admin","admin"],
+    },
+  ]
 };

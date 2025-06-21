@@ -58,7 +58,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     queryFn: fetchSubCategory,
   });
 
-  // Initialize form with data on edit mode
+  
   useEffect(() => {
     if (isEditMode && initialData) {
       setFormData({
@@ -66,12 +66,12 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
         description: initialData.small_description || "",
         price: initialData.price || "",
         saleprice: initialData.discounted_price || "",
-        images: [], // New uploads only
+        images: [], 
         imagePreviews: Array.isArray(initialData.images)
           ? initialData.images.map((imgUrl) => ({
-              file: null, // For consistent structure
+              file: null, 
               preview: imgUrl,
-              isFromServer: true, // ✅ mark to prevent deletion from unsaved server data
+              isFromServer: true, 
             }))
           : [],
         bannerImage: null,
@@ -113,13 +113,11 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
       toast.error("Failed to update product");
     },
   });
-  // Handle input changes
+ 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
-  // Handle new image uploads
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     const previews = files.map((file) => ({
@@ -133,7 +131,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     }));
   };
 
-  // Remove image from previews and files
+
   const removeImage = (index) => {
     setFormData((prev) => ({
       ...prev,
@@ -142,7 +140,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     }));
   };
 
-  // Handle banner image upload
+  
   const handleBannerChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -154,7 +152,6 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     }
   };
 
-  // Handle tag selection change
   const handleTagChange = (selectedOptions) => {
     const tags = selectedOptions ? selectedOptions.map((option) => option.value) : [];
     setFormData((prev) => ({ ...prev, tags }));
@@ -162,6 +159,20 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
 
   // Submit handler
   const handleSubmit = () => {
+    const hasNewImages = formData.images.length > 0;
+  const hasServerImages = formData.imagePreviews.some((img) => img.isFromServer);
+
+  if (!hasNewImages && !hasServerImages) {
+    toast.error("Please select at least one product image.");
+    return;
+  }
+  const hasBannerImage = formData.bannerImage instanceof File;
+  const hasBannerPreview = !!formData.bannerPreview;
+
+  if (!hasBannerImage && !hasBannerPreview) {
+    toast.error("Please select a banner image.");
+    return;
+  }
     const userId = getItem("userId");
     if (!userId) {
       toast.error("User ID not found. Please log in again.");

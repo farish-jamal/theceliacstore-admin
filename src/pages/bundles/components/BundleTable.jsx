@@ -4,124 +4,121 @@ import ActionMenu from "@/components/action_menu";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import CustomTable from "@/components/custom_table";
 import Typography from "@/components/typography";
-import { useEffect, useState } from "react";
 import { CustomDialog } from "@/components/custom_dialog";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { fetchBlogs } from "../helpers/fetchBlogs";
+import { useNavigate } from "react-router";
+import { fetchBundle } from "../helpers/fetchBundle";
+import { deleteBundle } from "../helpers/deleteBundle";
 
-const BlogsTable = ({ setBlogsLength, params, setParams }) => {
+const BundlesTable = ({ setBundleLength, params, setParams }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const {
-    data: apiBlogsResponse,
+    data: apiBundlesResponse,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["blogs", params],
-    queryFn: () => fetchBlogs({ params }),
+    queryKey: ["bundles", params],
+    queryFn: () => fetchBundle({ params }),
   });
 
   const [openDelete, setOpenDelete] = useState(false);
-  const [selectedBlog, setSelectedBlog] = useState(null);
+  const [bundleData, setBundleData] = useState(null);
 
   const onOpenDialog = (row) => {
     setOpenDelete(true);
-    setSelectedBlog(row);
+    setBundleData(row);
   };
 
   const onCloseDialog = () => {
     setOpenDelete(false);
-    setSelectedBlog(null);
+    setBundleData(null);
   };
 
-  // const { mutate: deleteBlogMutation, isLoading: isDeleting } = useMutation({
-  //   mutationFn: deleteBlogs,
-  //   onSuccess: () => {
-  //     toast.success("Blog deleted successfully.");
-  //     queryClient.invalidateQueries(["blogs"]);
-  //     onCloseDialog();
-  //   },
-  //   onError: (error) => {
-  //     console.error(error);
-  //     toast.error("Failed to delete blog.");
-  //   },
-  // });
+  const onPageChange = (page) => {
+    setParams((prev) => ({
+      ...prev,
+      page,
+    }));
+  };
+
+  const { mutate: deleteBundleMutation, isLoading: isDeleting } = useMutation({
+    mutationFn: deleteBundle,
+    onSuccess: () => {
+      toast.success("Bundle deleted successfully.");
+      queryClient.invalidateQueries(["bundles"]);
+      onCloseDialog();
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to delete bundle.");
+    },
+  });
 
   const onDeleteClick = (id) => {
-    deleteBlogMutation(id);
+    deleteBundleMutation(id);
   };
 
-  const blogs = Array.isArray(apiBlogsResponse?.response?.data)
-    ? apiBlogsResponse?.response?.data
-    : [];
-  const blogsTotal = apiBlogsResponse?.response?.total;
+  const bundles = apiBundlesResponse?.data || [];
+  const total = apiBundlesResponse?.total || 0;
+
+  const onNavigateToEdit = (bundle) => {
+    navigate(`/dashboard/bundle/edit/${bundle._id}`);
+  };
+
+  const onNavigateDetails = (bundle) => {
+    navigate(`/dashboard/bundles/${bundle._id}`);
+  };
+
+  const onNavigateInventoryHistory = (bundle) => {
+    navigate(`/dashboard/bundles/inventory-history/${bundle._id}`);
+  };
 
   useEffect(() => {
-    setBlogsLength(blogs?.length);
-  }, [blogs, setBlogsLength]);
+    setBundleLength(bundles?.length);
+  }, [bundles, setBundleLength]);
 
-  const onNavigateToEdit = (blog) => {
-    navigate(`/dashboard/blogs/edit/${blog._id}`);
-  };
-
-  const onNavigateDetails = (blog) => {
-    navigate(`/dashboard/blogs/${blog._id}`);
-  };
+  const perPage = params.per_page;
+  const totalPages = Math.ceil(total / perPage);
+  const currentPage = params.page;
 
   const columns = [
     {
-      key: "banner",
-      label: "Banner",
+      key: "name",
+      label: "Name",
       render: (value, row) => (
         <div className="flex items-center gap-2">
           <img
-           src={row.banner_image_url}
+            src={row.banner_image || row.images?.[0]}
             alt={value}
             className="h-16 w-16 rounded-lg object-contain"
           />
-          <Typography variant="p">{value}</Typography>
-        </div>
-      ),
-    },
-    {
-      key: "title",
-      label: "Title",
-      render: (value, row) => (
-        <div className="w-96">
-          <Typography className="block line-clamp-2 text-wrap" variant="p">
+          <Typography variant="p" className="text-wrap w-[15rem]">
             {value}
           </Typography>
-          <Typography
-            variant="span"
-            className="block line-clamp-2 text-gray-500 text-wrap"
-          >
-            {row.short_description}
-          </Typography>
         </div>
       ),
     },
-    // {
-    //   key: "service",
-    //   label: "Service",
-    //   render: (value, row) => {
-    //     return <Typography variant="p">{row.service?.name || "-"}</Typography>;
-    //   },
-    // },
     {
-      key: "isFeatured",
-      label: "Featured",
-      render: (value) => (value ? "Yes" : "No"),
+      key: "price",
+      label: "Price",
+      render: (value) => `₹${value}`,
     },
     {
-      key: "published",
-      label: "Published",
+      key: "discounted_price",
+      label: "Discounted Price",
+      render: (value) => `₹${value}`,
+    },
+    {
+      key: "instock",
+      label: "In Stock",
       render: (value) => (value ? "Yes" : "No"),
     },
     {
       key: "createdAt",
-      label: "Created at",
+      label: "Created At",
       render: (value, row) => (
         <div className="flex flex-col gap-1">
           <Typography>
@@ -160,46 +157,40 @@ const BlogsTable = ({ setBlogsLength, params, setParams }) => {
               action: () => onOpenDialog(row),
               className: "text-red-500",
             },
+            // {
+            //   label: "Inventory history",
+            //   icon: Eye,
+            //   action: () => onNavigateInventoryHistory(row),
+            // },
           ]}
         />
       ),
     },
   ];
 
-  const onPageChange = (page) => {
-    setParams((prev) => ({
-      ...prev,
-      page: page + 1,
-    }));
-  };
-
-  const perPage = params.per_page;
-  const currentPage = params.page;
-  const totalPages = Math.ceil(blogsTotal / perPage);
-
   return (
     <>
       <CustomTable
         columns={columns}
-        data={blogs || []}
+        data={bundles}
         isLoading={isLoading}
         error={error}
-        perPage={perPage}
-        currentPage={currentPage}
         totalPages={totalPages}
+        currentPage={currentPage}
+        perPage={perPage}
         onPageChange={onPageChange}
       />
       <CustomDialog
         onOpen={openDelete}
         onClose={onCloseDialog}
-        title={selectedBlog?.title}
+        title={bundleData?.name}
         modalType="Delete"
         onDelete={onDeleteClick}
-        id={selectedBlog?._id}
-        // isLoading={isDeleting}
+        id={bundleData?._id}
+        isLoading={isDeleting}
       />
     </>
   );
 };
 
-export default BlogsTable;
+export default BundlesTable;

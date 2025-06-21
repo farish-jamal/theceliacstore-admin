@@ -6,7 +6,6 @@ import Login from '@/pages/login';
 import Layout from '@/layout';
 import Dashboard from '@/pages/dashboard';
 import Brand from '@/pages/brands';
-import AddBrandCard from '@/pages/brands/components/AddBrandCard';
 import ErrorPage from '@/components/404';
 import Products from '@/pages/products';
 import Categories from '@/pages/categories';
@@ -16,10 +15,16 @@ import Admin from '@/pages/admin';
 import AddAdminCard from '@/pages/admin/components/AddAdminCard';
 import Blogs from '@/pages/blogs';
 import SubCategories from '@/pages/sub_categories';
-import AddSubCategoryCard from '@/pages/sub_categories/components/AddSubCategoryCard';
 import CategoryDetails from '@/pages/categories/components/category_details';
 import ProductsEditor from '@/pages/products/components/product_editor';
 import CategoryEditor from '@/pages/categories/components/category_editor';
+import SubCategoryEditor from '@/pages/sub_categories/components/sub_category_editor';
+import BrandEditor from '@/pages/brands/components/brand_editor';
+import BlogEditor from '@/pages/blogs/components/blog_editor';
+import ContactUs from '@/pages/contact_us';
+import Orders from '@/pages/orders';
+import Bundles from '@/pages/bundles';
+import BundleEditor from '@/pages/bundles/components/bundle_editor';
 
 const Router = () => {
   return (
@@ -37,12 +42,16 @@ const Router = () => {
       <Route path="/dashboard/product/edit/:id" element={<ProductsEditor />} />
       <Route path="/dashboard/products/:id" element={<ProductDetails />} />
 
+{/* {Bundles Route} */}
+<Route path="/dashboard/bundles" element={<Bundles />} />
+<Route path="/dashboard/bundles/add" element={<BundleEditor />} />
+<Route path="/dashboard/bundle/edit/:id" element={< BundleEditor/>} />
 
 
-    
       {/* Brands Route */}
       <Route path="/dashboard/brands" element={<Brand />} />
-      <Route path="/dashboard/brands/add" element={<AddBrandCard />} />
+      <Route path="/dashboard/brands/add" element={<BrandEditor />} />
+      <Route path="/dashboard/brands/edit/:id" element={<BrandEditor />} />
       <Route path="/dashboard/brands/:id" element={<BrandDetails />} />
 
 
@@ -55,14 +64,18 @@ const Router = () => {
 
       {/* Sub Category Route */}
       <Route path="/dashboard/subcategory" element={<SubCategories />} />
-      <Route path="/dashboard/subcategory/add" element={< AddSubCategoryCard/>} />
-
+      <Route path="/dashboard/subcategory/add" element={< SubCategoryEditor/>} />
+      <Route path="/dashboard/subcategory/edit/:id" element={< SubCategoryEditor/>} />
       {/* Admin Routes */}
       <Route path="/dashboard/admins" element={<Admin />} />
       <Route path="/dashboard/admins/add" element={<AddAdminCard />} />
 {/* Blogs */}
 <Route path="/dashboard/blogs" element={< Blogs/>} />
-
+<Route path="/dashboard/blogs/add" element={<BlogEditor />} />
+ {/* Contact Us */}
+ <Route path="/dashboard/contact-us" element={< ContactUs/>} />
+ {/* Orders */}
+ <Route path="/dashboard/orders" element={< Orders/>} />
     </Route>
     </Route>
     <Route path="*" element={<ErrorPage />} />

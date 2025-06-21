@@ -13,10 +13,13 @@ import { data } from "@/utils/sidebar/sidebarData";
 import { filterItemsByRole } from "@/utils/sidebar/filterItemsByRole";
 import { useEffect, useState } from "react";
 import { getItem } from "@/utils/local_storage";
+import { X } from "lucide-react";
+
 export function AppSidebar({ ...props }) {
   
   const userInfo = data.user;
   const [role, setRole] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const storedRole = getItem("userRole");
@@ -26,20 +29,66 @@ export function AppSidebar({ ...props }) {
     }
   }, []);
   
-  const filteredNavMain = filterItemsByRole(data.navMain, role);
-  const filteredProjectMain = filterItemsByRole(data.projects, role);
+  
+  const filterBySearch = (items, query) =>
+    items
+      .map((item) => {
+        const title = item.title || item.label; // fallback if some items use 'label'
+        const matchesTitle = title?.toLowerCase().includes(query.toLowerCase());
+  
+        if (Array.isArray(item.items)) {
+          const filteredSub = filterBySearch(item.items, query);
+          if (matchesTitle || filteredSub.length > 0) {
+            return { ...item, items: filteredSub };
+          }
+          return null;
+        }
+  
+        if (matchesTitle) return item;
+        return null;
+      })
+      .filter(Boolean);
+  
+
+  const filteredNavMain = filterBySearch(filterItemsByRole(data.navMain, role), searchQuery);
+  const filteredProjectMain = filterBySearch(filterItemsByRole(data.projects, role), searchQuery);
+  const filteredManagementMain = filterBySearch(filterItemsByRole(data.management, role), searchQuery);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams}  />
-        <Input placeholder="Search" className="bg-white" />
-      </SidebarHeader>
-      <SidebarContent className="overflow-y-auto [&::-webkit-scrollbar]:hidden">
-      <NavMain items={filteredNavMain} showHeader={false} />
-      <NavMain items={filteredProjectMain}  showHeader={true}
-            header={"More"} />
+        <div className="relative">
+  <Input
+    placeholder="Search"
+    className="bg-white pr-10" // more space for icon
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+  />
+  {searchQuery && (
+    <button
+      type="button"
+      onClick={() => setSearchQuery("")}
+      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      aria-label="Clear search"
+    >
+      <X size={16} />
+    </button>
+  )}
+</div>      </SidebarHeader>
+     <SidebarContent className="overflow-y-auto [&::-webkit-scrollbar]:hidden">
+  {filteredNavMain.length > 0 && (
+    <NavMain items={filteredNavMain} showHeader={false} />
+  )}
 
-      </SidebarContent>
+  {filteredProjectMain.length > 0 && (
+    <NavMain items={filteredProjectMain} showHeader={true} header={"More"} />
+  )}
+
+  {filteredManagementMain.length > 0 && (
+    <NavMain items={filteredManagementMain} showHeader={true} header={"Management"} />
+  )}
+</SidebarContent>
       <SidebarFooter>
         <NavUser user={userInfo} />
       </SidebarFooter>

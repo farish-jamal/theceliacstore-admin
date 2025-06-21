@@ -50,13 +50,13 @@ const SubCategory = ({ setCategoryLength, params, setParams }) => {
     useMutation({
       mutationFn: deleteCategory,
       onSuccess: () => {
-        toast.success("categorys deleted successfully.");
+        toast.success("Sub-Category deleted successfully.");
         queryClient.invalidateQueries(["categorys"]);
         onCloseDialog();
       },
       onError: (error) => {
         console.error(error);
-        toast.error("Failed to delete category.");
+        toast.error("Failed to delete Sub-Category.");
       },
     });
 
@@ -66,8 +66,10 @@ const SubCategory = ({ setCategoryLength, params, setParams }) => {
   const categorys = apicategorysResponse?.data|| [];
   const total = apicategorysResponse?.data?.total || 0;
 
-  const onNavigateToEdit = (category) => {
-    navigate(`/dashboard/categorys/edit/${category._id}`);
+  const onNavigateToEdit = (subcategory) => {
+    navigate(`/dashboard/subcategory/edit/${subcategory._id}`, {
+      state: { subCategory: subcategory }
+    });
   };
 
   const onNavigateDetails = (category) => {

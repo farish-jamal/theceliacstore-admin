@@ -12,5 +12,11 @@ export const endpoints = {
    admin_register: "api/auth/admin/register",
    admin: "api/auth/admin",
 //blogs
-  blogs :"/api/blogs"
+  blogs :"api/blogs",
+  //contact-us
+  contact: "api/contact-us",
+//order
+order:"api/order",
+// bundles
+bundle:"api/bundles"
 }

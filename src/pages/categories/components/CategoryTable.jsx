@@ -50,7 +50,7 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
     useMutation({
       mutationFn: deleteCategory,
       onSuccess: () => {
-        toast.success("categorys deleted successfully.");
+        toast.success("Category deleted successfully.");
         queryClient.invalidateQueries(["categorys"]);
         onCloseDialog();
       },

@@ -45,7 +45,7 @@ export function LoginForm() {
         toast.success("Logged in successfully!");
         setTimeout(() => {
           navigate("/dashboard");
-        }, 3000);
+        }, 2000);
       },
       
       

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import Typography from "@/components/typography";
 import { Checkbox } from "@/components/ui/checkbox";
-import { XCircle } from "lucide-react";
+import { X } from "lucide-react";
 import { createCategory } from "../../helpers/createProduct";
 import { updateCategory } from "../../helpers/updateCategory";
 
@@ -208,10 +208,10 @@ const AddCategoryCard = ({ initialData = {}, isEditMode = false }) => {
                   <button
                     type="button"
                     onClick={() => handleImageRemove(index)}
-                    className="absolute top-1 right-1 bg-white text-red-600 rounded-full p-1 hover:bg-red-100 transition"
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 "
                     title="Remove image"
                   >
-                    <XCircle size={18} />
+                    <X  className="w-4 h-4" />
                   </button>
                 </div>
               ))}

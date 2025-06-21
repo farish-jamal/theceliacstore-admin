@@ -54,7 +54,7 @@ const ExportCategoryDialog = ({
       <DialogContent className="p-6 rounded-xl shadow-lg border border-gray-400">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
-            Export Admins
+            Export Category
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-4">
