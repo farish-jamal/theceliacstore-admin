@@ -5,10 +5,13 @@ import CustomActionMenu from "@/components/custom_action";
 import NavbarItem from "@/components/navbar/navbar_item";
 import { DateRangePicker } from "@/components/date_filter";
 import ProductsTable from "./components/ProductsTable";
+import ExcelUploadDialog from "./components/ExcelUploadDialog";
+import ExportProductDialog from "./components/ExportProductDialog";
 
 const Products = () => {
   const navigate = useNavigate();
-
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openBulkExportDialog, setOpenBulkExportDialog] = useState(false);
   const [productLength, setProductLength] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [params, setParams] = useState({
@@ -20,7 +23,13 @@ const Products = () => {
   });
 
   const debouncedSearch = useDebounce(searchText, 500);
+  const onOpenBulkExportDialog = () => {
+    setOpenBulkExportDialog(true);
+  };
 
+  const onCloseBulkExportDialog = () => {
+    setOpenBulkExportDialog(false);
+  };
   const handleSearch = (e) => {
     setSearchText(e.target.value);
   };
@@ -55,20 +64,37 @@ const Products = () => {
       />
 
       <div className="px-4">
-        <CustomActionMenu
+      <CustomActionMenu
           title="products"
           total={productLength}
           onAdd={onAdd}
+          setOpenDialog={setOpenDialog}
+          disableBulkUpload={false}
           searchText={searchText}
           handleSearch={handleSearch}
-          onRowsPerPageChange={onRowsPerPageChange}
+          setParams={setParams}
+          // showDateRangePicker={true}
+          // handleDateRangeChange={handleDateRangeChange}
+          disableBulkExport={false}
+          onBulkExport={onOpenBulkExportDialog}
           showRowSelection={true}
+          onRowsPerPageChange={onRowsPerPageChange}
           rowsPerPage={params.per_page}
         />
         <ProductsTable
        setProductLength={setProductLength}
        params={params}
        setParams={setParams}
+        />
+         <ExcelUploadDialog
+          openDialog={openDialog}
+          setOpenDialog={setOpenDialog}
+        />
+
+         <ExportProductDialog
+          openDialog={openBulkExportDialog}
+          onClose={onCloseBulkExportDialog}
+          params={params}
         />
       </div>
     </div>

@@ -18,5 +18,7 @@ export const endpoints = {
 //order
 order:"api/order",
 // bundles
-bundle:"api/bundles"
+bundle:"api/bundles",
+//bulk_export_products
+bulk_export_products:"api/product/export"
 }

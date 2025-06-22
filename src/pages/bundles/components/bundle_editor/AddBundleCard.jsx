@@ -142,7 +142,7 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
   };
 
   return (
-    <div className="p-10 max-w-4xl mx-auto w-full space-y-6 bg-white rounded-xl border">
+    <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border">
       <div className="space-y-2">
         <Label>Name</Label>
         <Input name="name" value={formData.name} onChange={handleChange} />

@@ -46,9 +46,63 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     bannerPreview: null,
     tags: [],
     sub_category: "",
+    variants: [
+      {
+        sku: "",
+        name: "",
+        price: "",
+        discounted_price: "",
+        inventory: "",
+        image: null,
+        imagePreview: null,
+      },
+    ],
   });
-
-  // Fetch subcategories
+  
+  const addVariant = () => {
+    setFormData((prev) => ({
+      ...prev,
+      variants: [
+        ...prev.variants,
+        {
+          sku: "",
+          name: "",
+          price: "",
+          discounted_price: "",
+          inventory: "",
+          image: null,
+          imagePreview: null,
+        },
+      ],
+    }));
+  };
+  
+  const removeVariant = (index) => {
+    setFormData((prev) => {
+      const newVariants = [...prev.variants];
+      newVariants.splice(index, 1);
+      return { ...prev, variants: newVariants };
+    });
+  };
+  
+  const handleVariantChange = (index, field, value) => {
+    const updatedVariants = [...formData.variants];
+    updatedVariants[index][field] = value;
+    setFormData((prev) => ({
+      ...prev,
+      variants: updatedVariants,
+    }));
+  };
+  
+  const handleVariantImageChange = (index, file) => {
+    const updatedVariants = [...formData.variants];
+    updatedVariants[index].image = file;
+    updatedVariants[index].imagePreview = URL.createObjectURL(file);
+    setFormData((prev) => ({
+      ...prev,
+      variants: updatedVariants,
+    }));
+  };
   const {
     data: apiSubcategoriesResponse,
     isLoading: isSubcategoriesLoading,
@@ -83,7 +137,6 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
   }, [initialData, isEditMode]);
   
 
-  // Mutations for create and edit
   const createMutation = useMutation({
     mutationFn: ({ formData, params }) => createProduct(formData, params),
     onSuccess: (res) => {
@@ -159,21 +212,8 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
 
   // Submit handler
   const handleSubmit = () => {
-    const hasNewImages = formData.images.length > 0;
-  const hasServerImages = formData.imagePreviews.some((img) => img.isFromServer);
-
-  if (!hasNewImages && !hasServerImages) {
-    toast.error("Please select at least one product image.");
-    return;
-  }
-  const hasBannerImage = formData.bannerImage instanceof File;
-  const hasBannerPreview = !!formData.bannerPreview;
-
-  if (!hasBannerImage && !hasBannerPreview) {
-    toast.error("Please select a banner image.");
-    return;
-  }
     const userId = getItem("userId");
+  
     if (!userId) {
       toast.error("User ID not found. Please log in again.");
       return;
@@ -188,28 +228,48 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     form.append("user_id", userId);
     form.append("created_by_admin", userId);
   
-    // Append tags
+    // Tags
     formData.tags.forEach((tag) => form.append("tags", tag));
   
-    // Append product images (if any)
+    // Product images
     formData.images.forEach((image) => {
       if (image instanceof File) {
         form.append("images", image);
       }
     });
   
-    // Append banner image (only if valid)
+    // Banner image
     if (formData.bannerImage instanceof File) {
       form.append("banner_image", formData.bannerImage);
     }
   
-    // Call appropriate mutation
+    // ✅ Variants
+    formData.variants.forEach((variant, i) => {
+      form.append(`variants[${i}][sku]`, variant.sku);
+      form.append(`variants[${i}][name]`, variant.name);
+      form.append(`variants[${i}][price]`, variant.price);
+      form.append(`variants[${i}][discounted_price]`, variant.discounted_price);
+      form.append(`variants[${i}][inventory]`, variant.inventory);
+    
+      // Append images for this variant
+      if (variant.images && variant.images.length > 0) {
+        variant.images.forEach((imageFile) => {
+          if (imageFile instanceof File) {
+            form.append(`variants[${i}][images]`, imageFile);
+          }
+        });
+      }
+    });
+    
+  
+    // Submit
     if (isEditMode) {
       editMutation.mutate({ id: initialData._id, payload: form });
     } else {
       createMutation.mutate({ formData: form, params: { user_id: userId } });
     }
   };
+  
   
   
 
@@ -370,6 +430,104 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     </div>
   )}
 </div>
+
+{/* Variants */}
+<div className="space-y-6">
+  <Label>Variants</Label>
+  {formData.variants.map((variant, index) => (
+    <div
+      key={index}
+      className="p-6 border rounded relative bg-gray-50 space-y-4"
+    >
+      <button
+        type="button"
+        onClick={() => removeVariant(index)}
+        className="absolute top-4 right-4 text-red-500"
+        title="Remove Variant"
+      >
+        <XCircle size={20} />
+      </button>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex flex-col">
+          <Label htmlFor={`sku-${index}`} className="mb-1">SKU</Label>
+          <Input
+            id={`sku-${index}`}
+            value={variant.sku}
+            onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <Label htmlFor={`name-${index}`} className="mb-1">Name</Label>
+          <Input
+            id={`name-${index}`}
+            value={variant.name}
+            onChange={(e) => handleVariantChange(index, "name", e.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <Label htmlFor={`price-${index}`} className="mb-1">Price</Label>
+          <Input
+            id={`price-${index}`}
+            type="number"
+            value={variant.price}
+            onChange={(e) => handleVariantChange(index, "price", e.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <Label htmlFor={`discounted_price-${index}`} className="mb-1">Discounted Price</Label>
+          <Input
+            id={`discounted_price-${index}`}
+            type="number"
+            value={variant.discounted_price}
+            onChange={(e) =>
+              handleVariantChange(index, "discounted_price", e.target.value)
+            }
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <Label htmlFor={`inventory-${index}`} className="mb-1">Inventory</Label>
+          <Input
+            id={`inventory-${index}`}
+            type="number"
+            value={variant.inventory}
+            onChange={(e) =>
+              handleVariantChange(index, "inventory", e.target.value)
+            }
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <Label htmlFor={`image-${index}`} className="mb-1">Image</Label>
+          <Input
+            id={`image-${index}`}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleVariantImageChange(index, e.target.files[0])}
+          />
+        </div>
+      </div>
+
+      {variant.imagePreview && (
+        <div className="pt-4">
+          <img
+            src={variant.imagePreview}
+            alt="Variant Preview"
+            className="w-32 h-32 object-contain border rounded"
+          />
+        </div>
+      )}
+    </div>
+  ))}
+  <Button onClick={addVariant} type="button" className="mt-4">
+    + Add Variant
+  </Button>
+</div>
+
 
 
         {/* Submit */}
