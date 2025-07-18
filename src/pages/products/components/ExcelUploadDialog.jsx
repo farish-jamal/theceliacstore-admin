@@ -14,9 +14,10 @@ import { generateTemplate } from "@/utils/excel_generate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { columnMapper } from "@/constant";
 import { productBulkUpload } from "./helpers/bulkUpload";
-import { fetchCategory } from "@/pages/sub_categories/helpers/fetchCategory";
+import { fetchCategory } from "@/pages/categories/helpers/fetchCategory";
 
-const ExcelUploadDialog = ({ openDialog, setOpenDialog }) => {
+
+const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -41,10 +42,12 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog }) => {
     },
   });
 
-  const { data: apiCategoriesResponse } = useQuery({
-    queryKey: ["categories"],
-    queryFn: fetchCategory,
-  });
+  
+  const {
+    data: apicategorysResponse,
+  } = useQuery({
+    queryKey: ["category", params],
+    queryFn: () => fetchCategory({ params }),  });
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -96,7 +99,7 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog }) => {
 
   const handleDownloadTemplate = () => {
     setIsGenerating(true);
-    const categoryDropdownOptions = apiCategoriesResponse?.response?.data?.map(
+    const categoryDropdownOptions = apicategorysResponse?.response?.data?.map(
       (cat) => {
         return cat.name;
       }

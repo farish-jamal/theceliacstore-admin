@@ -2,7 +2,7 @@ import { apiService } from "@/api/api_service/apiService";
 import { endpoints } from "@/api/endpoints";
 
 
-export const fetchProducts = async ({ params }) => {
+export const fetchCategory = async ({ params }) => {
   try {
     const sanitizedParams = Object.fromEntries(
       Object.entries(params).filter(([_, v]) => v !== undefined && v !== "")
@@ -14,11 +14,10 @@ export const fetchProducts = async ({ params }) => {
       params: sanitizedParams,
     });
 
-    // console.log("API response inside fetchProducts:", response);
 
     return response;
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error("Error fetching category:", error);
     throw error;
   }
 };

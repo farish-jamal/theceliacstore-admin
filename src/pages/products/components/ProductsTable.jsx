@@ -115,12 +115,12 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
     {
       key: "price",
       label: "Price",
-      render: (value) => `₹${value}`,
+      render: (value) => `₹${value?.$numberDecimal || value || ''}`,
     },
     {
       key: "discounted_price",
       label: "Discounted Price",
-      render: (value) => `₹${value}`,
+      render: (value) => `₹${value?.$numberDecimal || value || ''}`,
     },
     {
       key: "instock",

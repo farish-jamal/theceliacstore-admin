@@ -175,7 +175,61 @@ const ProductDetails = () => {
             )}
         </div>
       </div>
+{product.variants?.length > 0 && (
+  <div className="space-y-2 mt-6">
+    <Typography variant="h5">Variants</Typography>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {product.variants.map((variant) => (
+        <div
+          key={variant._id }
+          className="p-4 border rounded-lg shadow-sm bg-white"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="font-medium">{variant.name}</h4>
+            <Badge variant={variant.inventory > 0 ? "default" : "destructive"}>
+  {variant.inventory > 0
+    ? `In Stock (${variant.inventory})`
+    : "Out of Stock"}
+</Badge>
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-1">SKU: {variant.sku}</p>
+
+          <div className="flex items-center gap-2 text-base">
+            <span className="text-primary font-semibold">
+              ₹{variant.discounted_price}
+            </span>
+            {variant.price !== variant.discounted_price && (
+              <span className="line-through text-gray-400 text-sm">
+                ₹{variant.price}
+              </span>
+            )}
+          </div>
+
+          {variant.images?.length > 0 && (
+            <div className="flex gap-2 mt-3">
+              {variant.images.map((img, i) => (
+                <Dialog key={i}>
+                  <DialogTrigger asChild>
+                    <img
+                      src={img}
+                      alt={`Variant ${variant.name} - Image ${i + 1}`}
+                      className="w-12 h-12 object-cover rounded-md border cursor-pointer"
+                      onClick={() => setPreviewImg(img)}
+                    />
+                  </DialogTrigger>
+                </Dialog>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
+  </div>
+)}
+
+    </div>
+    
   );
 };
 

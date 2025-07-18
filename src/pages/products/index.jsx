@@ -89,6 +89,7 @@ const Products = () => {
          <ExcelUploadDialog
           openDialog={openDialog}
           setOpenDialog={setOpenDialog}
+          params={params || {}}
         />
 
          <ExportProductDialog

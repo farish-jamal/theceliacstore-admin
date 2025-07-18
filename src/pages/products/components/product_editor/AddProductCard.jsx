@@ -120,18 +120,39 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
         description: initialData.small_description || "",
         price: initialData.price || "",
         saleprice: initialData.discounted_price || "",
-        images: [], 
+        images: [],
         imagePreviews: Array.isArray(initialData.images)
           ? initialData.images.map((imgUrl) => ({
-              file: null, 
+              file: null,
               preview: imgUrl,
-              isFromServer: true, 
+              isFromServer: true,
             }))
           : [],
         bannerImage: null,
         bannerPreview: initialData.banner_image || null,
         tags: Array.isArray(initialData.tags) ? initialData.tags : [],
         sub_category: initialData.sub_category || "",
+        variants: Array.isArray(initialData.variants) && initialData.variants.length > 0
+          ? initialData.variants.map(v => ({
+              sku: v.sku || "",
+              name: v.name || "",
+              price: v.price || "",
+              discounted_price: v.discounted_price || "",
+              inventory: v.inventory || "",
+              image: null,
+              imagePreview: null,
+            }))
+          : [
+              {
+                sku: "",
+                name: "",
+                price: "",
+                discounted_price: "",
+                inventory: "",
+                image: null,
+                imagePreview: null,
+              },
+            ],
       });
     }
   }, [initialData, isEditMode]);
@@ -348,7 +369,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
             value={formData.sub_category}
             className="w-full border border-gray-300 rounded px-3 py-2"
           >
-            <option value="">-- Select Subcategory --</option>
+            <option value="">Select Subcategory</option>
             {Array.isArray(apiSubcategoriesResponse?.data) &&
               apiSubcategoriesResponse.data.map((sub) => (
                 <option key={sub._id} value={sub._id}>
@@ -437,7 +458,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
   {formData.variants.map((variant, index) => (
     <div
       key={index}
-      className="p-6 border rounded relative bg-gray-50 space-y-4"
+      className="p-6 border rounded relative  space-y-4"
     >
       <button
         type="button"

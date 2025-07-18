@@ -8,8 +8,8 @@ import { CustomDialog } from "@/components/custom_dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
-import { fetchProducts } from "../helpers/fetchProducts";
 import { deleteCategory } from "../helpers/deleteCategory";
+import { fetchCategory } from "../helpers/fetchCategory";
 
 
 const CategoryTable = ({ setCategoryLength, params, setParams }) => {
@@ -22,7 +22,7 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
     error,
   } = useQuery({
     queryKey: ["category", params],
-    queryFn: () => fetchProducts({ params }),  });
+    queryFn: () => fetchCategory({ params }),  });
 
 
   const [openDelete, setOpenDelete] = useState(false);

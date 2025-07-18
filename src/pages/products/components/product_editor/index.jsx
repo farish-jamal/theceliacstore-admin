@@ -19,6 +19,7 @@ const ProductsEditor = () => {
   });
 
   const initialData = initialDataRes?.response?.data;
+  console.log("initialData:", initialData);
 
   const breadcrumbs = [
     { title: "Products", isNavigation: true, path: "/dashboard/products" },

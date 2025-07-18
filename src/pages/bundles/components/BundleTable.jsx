@@ -23,7 +23,12 @@ const BundlesTable = ({ setBundleLength, params, setParams }) => {
     queryKey: ["bundles", params],
     queryFn: () => fetchBundle({ params }),
   });
-
+  useEffect(() => {
+    if (apiBundlesResponse) {
+      console.log("Fetched bundles:", apiBundlesResponse);
+    }
+  }, [apiBundlesResponse]);
+  
   const [openDelete, setOpenDelete] = useState(false);
   const [bundleData, setBundleData] = useState(null);
 
@@ -61,8 +66,8 @@ const BundlesTable = ({ setBundleLength, params, setParams }) => {
     deleteBundleMutation(id);
   };
 
-  const bundles = apiBundlesResponse?.data || [];
-  const total = apiBundlesResponse?.total || 0;
+  const bundles = apiBundlesResponse?.data?.data || [];
+const total = apiBundlesResponse?.data?.total || 0;
 
   const onNavigateToEdit = (bundle) => {
     navigate(`/dashboard/bundle/edit/${bundle._id}`);
@@ -104,12 +109,12 @@ const BundlesTable = ({ setBundleLength, params, setParams }) => {
     {
       key: "price",
       label: "Price",
-      render: (value) => `₹${value}`,
+      render: (value) => `₹${value?.$numberDecimal ?? "0"}`,
     },
     {
       key: "discounted_price",
       label: "Discounted Price",
-      render: (value) => `₹${value}`,
+      render: (value) => `₹${value?.$numberDecimal ?? "0"}`,
     },
     {
       key: "instock",

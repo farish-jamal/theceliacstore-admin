@@ -1,6 +1,13 @@
-"use client";
 
-import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
+import {
+  BadgeCheck,
+  CircleUserRound,
+  EllipsisVertical,
+  LogOut,
+  UserRound,
+} from "lucide-react";
+import { useState,useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,20 +25,36 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { removeItem } from "@/utils/local_storage";
-import { useNavigate } from "react-router-dom";
+
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
+  const [openSheet, setOpenSheet] = useState(false);
+  const [editedUser, setEditedUser] = useState({
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
   const onLogout = () => {
-    console.log("Logout clicked");
     removeItem("token");
     removeItem("userId");
-    removeItem("userRole"); 
-    console.log("❌ Removed: userRole");
-  
+    removeItem("userRole");
     navigate("/login", { replace: true });
   };
+  
+  const handleInputChange = (e) => {
+    setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
+  };
+
+  const saveChanges = () => {
+    console.log("Saved user info:", editedUser);
+    setOpenSheet(false);
+  };
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -43,13 +66,15 @@ export function NavUser({ user }) {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  <CircleUserRound />
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 <span className="truncate text-xs">{user.email}</span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <EllipsisVertical className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -62,7 +87,9 @@ export function NavUser({ user }) {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    <CircleUserRound />
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
@@ -72,18 +99,57 @@ export function NavUser({ user }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
+              <DropdownMenuItem onClick={() => setOpenSheet(true)}>
+                <BadgeCheck className="mr-2 h-4 w-4" />
                 Account
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogout}>
-              <LogOut />
+              <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Sheet for user info */}
+        <Sheet open={openSheet} onOpenChange={setOpenSheet}>
+  <SheetContent side="right" className="flex flex-col h-full">
+    <SheetHeader>
+      <SheetTitle>Edit Profile</SheetTitle>
+    </SheetHeader>
+
+    {/* Content Area with Scrollable Fields */}
+    <div className="flex-1 overflow-auto space-y-6 py-6 px-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+        <Input
+          name="name"
+          value={editedUser.name}
+          onChange={handleInputChange}
+          className="w-full"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <Input
+          name="email"
+          value={editedUser.email}
+          onChange={handleInputChange}
+          className="w-full"
+        />
+      </div>
+    </div>
+
+    {/* Footer Button */}
+    <div className="border-t p-4">
+      <Button onClick={saveChanges} className="w-full">
+        Save Changes
+      </Button>
+    </div>
+  </SheetContent>
+</Sheet>
+
       </SidebarMenuItem>
     </SidebarMenu>
   );

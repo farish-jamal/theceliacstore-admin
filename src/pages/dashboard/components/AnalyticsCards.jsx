@@ -22,7 +22,7 @@ const analyticsData = [
 
 const AnalyticsCards = () => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 px-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 px-4 ">
       {analyticsData.map((data, index) => (
         <CardStats key={index} {...data} />
       ))}
@@ -36,8 +36,8 @@ function CardStats({ title, value, change, icon: Icon }) {
   const isPositive = change.startsWith("+");
 
   return (
-    <Card className="py-4 shadow-md border gap-2">
-      <CardHeader className="flex flex-row items-center justify-between">
+<Card className="py-4 shadow-md border gap-2 bg-gradient-to-t from-[#57b45b]/10 to-transparent h-[200px]">
+<CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base font-medium">{title}</CardTitle>
         <Button variant="outline">
           <Icon className="w-5 h-5 text-gray-500" />

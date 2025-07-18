@@ -29,7 +29,7 @@ export function AppSidebar({ ...props }) {
     }
   }, []);
   
-  
+  const userInfoWithRole = { ...data.user, role };
   const filterBySearch = (items, query) =>
     items
       .map((item) => {
@@ -61,7 +61,7 @@ export function AppSidebar({ ...props }) {
         <div className="relative">
   <Input
     placeholder="Search"
-    className="bg-white pr-10" // more space for icon
+    className="bg-white pr-10" 
     value={searchQuery}
     onChange={(e) => setSearchQuery(e.target.value)}
   />
@@ -90,7 +90,7 @@ export function AppSidebar({ ...props }) {
   )}
 </SidebarContent>
       <SidebarFooter>
-        <NavUser user={userInfo} />
+      <NavUser user={userInfoWithRole} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
