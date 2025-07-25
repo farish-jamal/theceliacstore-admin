@@ -5,7 +5,7 @@ import { Eye, Pencil } from "lucide-react";
 import CustomTable from "@/components/custom_table";
 import Typography from "@/components/typography";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { fetchOrders } from "../helpers/fetchOrders";
+import { updateOrderStatus } from "../helpers/updateOrderStatus";
 
 const ORDER_STATUSES = [
   "pending",
@@ -33,18 +34,22 @@ const ORDER_STATUSES = [
   "cancelled",
 ];
 
-const OrdersTable = ({ setOrdersLength, params, setParams }) => {
-  const { id } = useParams();
+const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage = false }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Modify params for single page mode
+  const queryParams = showAllOnSinglePage 
+    ? { ...params, per_page: 1000, page: 1 } // Fetch up to 1000 orders on single page
+    : params;
 
   const {
     data: apiOrdersResponse,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["orders", params],
-    queryFn: () => fetchOrders({ params }),
+    queryKey: ["orders", queryParams],
+    queryFn: () => fetchOrders({ params: queryParams }),
   });
 
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
@@ -85,28 +90,24 @@ const OrdersTable = ({ setOrdersLength, params, setParams }) => {
     { key: "sr_no", label: "Order Id", render: (_, row) => row?._id },
     {
       key: "items",
-      label: "Products",
-      render: (items) => (
-        <div className="flex flex-col gap-2">
-          {items.map((item) => (
-            <div key={item._id} className="flex items-center gap-3">
-              <img
-                src={item.product.banner_image}
-                alt={item.product.name}
-                className="h-12 w-12 rounded-md object-cover"
-              />
-              <div>
-                <Typography variant="p" className="font-medium">
-                  {item.product.name}
-                </Typography>
-                <Typography variant="small" className="text-muted-foreground">
-                  Qty: {item.quantity} · ₹{item.product.discounted_price}
-                </Typography>
-              </div>
-            </div>
-          ))}
-        </div>
-      ),
+      label: "Items",
+      render: (items) => {
+        const itemList = items?.map((item) => {
+          // Check if it's a bundle or product
+          const isBundle = item.bundle;
+          const itemData = isBundle ? item.bundle : item.product;
+          const itemName = itemData?.name || 'Unknown Item';
+          const quantity = item.quantity || 0;
+          
+          return `${itemName} x${quantity}`;
+        }).join(', ') || 'No items';
+        
+        return (
+          <Typography variant="p" className="text-wrap max-w-xs">
+            {itemList}
+          </Typography>
+        );
+      },
     },
     {
       key: "status",
@@ -132,9 +133,9 @@ const OrdersTable = ({ setOrdersLength, params, setParams }) => {
     {
       key: "totalAmount",
       label: "Total",
-      render: (_,row) => (
+      render: (totalAmount, row) => (
         <Typography variant="p" className="font-medium">
-          ₹{row?.discountedPriceAfterCoupon.toFixed(2)}
+          ₹{(totalAmount || row?.discountedPriceAfterCoupon || 0).toFixed(2)}
         </Typography>
       ),
     },
@@ -152,7 +153,7 @@ const OrdersTable = ({ setOrdersLength, params, setParams }) => {
             {
               label: "View Details",
               icon: Eye,
-              action: () => navigate(`/dashboard/orders/details/${order._id}`),
+              action: () => navigate(`/dashboard/orders/${order._id}`),
             },
             {
               label: "Edit Status",
@@ -172,9 +173,9 @@ const OrdersTable = ({ setOrdersLength, params, setParams }) => {
     }));
   };
 
-  const perPage = params.per_page;
-  const currentPage = params.page;
-  const totalPages = Math.ceil(orderTotal / perPage);
+  const perPage = showAllOnSinglePage ? orderTotal : params.per_page;
+  const currentPage = showAllOnSinglePage ? 1 : params.page;
+  const totalPages = showAllOnSinglePage ? 1 : Math.ceil(orderTotal / params.per_page);
 
   return (
     <>
@@ -186,7 +187,8 @@ const OrdersTable = ({ setOrdersLength, params, setParams }) => {
         perPage={perPage}
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={onPageChange}
+        onPageChange={showAllOnSinglePage ? () => {} : onPageChange}
+        hidePagination={showAllOnSinglePage}
       />
       <Dialog open={openStatusDialog} onOpenChange={setOpenStatusDialog}>
         <DialogContent>

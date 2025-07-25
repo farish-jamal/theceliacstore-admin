@@ -19,20 +19,11 @@ const Orders = () => {
   const [searchText, setSearchText] = useState("");
   const [params, setParams] = useState(paramInitialState);
   const [ordersLength, setOrdersLength] = useState(0);
-  const [openBulkExportDialog, setOpenBulkExportDialog] = useState(false);
 
   const debouncedSearch = useDebounce(searchText, 500);
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);
-  };
-
-  const onOpenBulkExportDialog = () => {
-    setOpenBulkExportDialog(true);
-  };
-
-  const onCloseBulkExportDialog = () => {
-    setOpenBulkExportDialog(false);
   };
 
   useEffect(() => {
@@ -46,6 +37,7 @@ const Orders = () => {
     setParams((prev) => ({
       ...prev,
       per_page: newRowsPerPage,
+      page: 1, // Reset to first page when changing per_page
     }));
   };
 
@@ -100,21 +92,15 @@ const Orders = () => {
           searchText={searchText}
           handleSearch={handleSearch}
           onRowsPerPageChange={onRowsPerPageChange}
-          showRowSelection={true}
-          rowsPerPage={params.per_page}
-          disableBulkExport={false}
-          onBulkExport={onOpenBulkExportDialog}
+          showRowSelection={false}
+          disableBulkExport={true}
         />
         <OrdersTable
           setOrdersLength={setOrdersLength}
           params={params}
           setParams={setParams}
+          showAllOnSinglePage={true}
         />
-        {/* <ExportOrderDialog
-          openDialog={openBulkExportDialog}
-          onClose={onCloseBulkExportDialog}
-          params={params}
-        /> */}
       </div>
     </div>
   );

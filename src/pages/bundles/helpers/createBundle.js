@@ -4,15 +4,13 @@ import { endpoints } from "@/api/endpoints";
 
 
 
-export const createBundle = async (formData, params) => {
+export const createBundle = async (formData) => {
   try {
     const response = await apiService({
       endpoint: endpoints.bundle,
       method: "POST",
       data: formData,
-      params: params,
       hasFile: true,  
-
     });
 
     return response;

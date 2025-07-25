@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Select from "react-select";
-import { XCircle } from "lucide-react";
+import { XCircle, Trash2 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,7 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     description: "",
     price: "",
     discounted_price: "",
-    products: [],
+    products: [], // Array of {product: id, quantity: number}
     images: [],
     imagePreviews: [],
   });
@@ -46,7 +46,10 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
         price: initialData.price || "",
         discounted_price: initialData.discounted_price || "",
         products: Array.isArray(initialData.products)
-          ? initialData.products.map((p) => p._id)
+          ? initialData.products.map((p) => ({
+              product: typeof p === 'string' ? p : p._id || p.product,
+              quantity: p.quantity || 1
+            }))
           : [],
         images: [],
         imagePreviews: Array.isArray(initialData.images)
@@ -61,8 +64,8 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
   }, [initialData, isEditMode]);
 
   const createMutation = useMutation({
-    mutationFn: ({ formData, params }) => createBundle(formData, params),
-    onSuccess: (res) => {
+    mutationFn: ({ formData }) => createBundle(formData),
+    onSuccess: () => {
       toast.success("Bundle created successfully");
       navigate("/dashboard/bundles");
     },
@@ -71,8 +74,8 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
 
   const editMutation = useMutation({
     mutationFn: ({ id, payload }) => updateBundle({ id, payload }),
-    onSuccess: (res) => {
-      toast.success("Product updated successfully");
+    onSuccess: () => {
+      toast.success("Bundle updated successfully");
       navigate("/dashboard/bundles");
     },
     onError: () => toast.error("Failed to update bundle"),
@@ -84,8 +87,36 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
   };
 
   const handleProductChange = (selectedOptions) => {
-    const products = selectedOptions ? selectedOptions.map((opt) => opt.value) : [];
-    setFormData((prev) => ({ ...prev, products }));
+    const newProducts = selectedOptions ? selectedOptions.map((opt) => ({
+      product: opt.value,
+      quantity: 1
+    })) : [];
+    
+    // Preserve existing quantities for products that are still selected
+    const updatedProducts = newProducts.map(newProduct => {
+      const existingProduct = formData.products.find(p => p.product === newProduct.product);
+      return existingProduct ? existingProduct : newProduct;
+    });
+    
+    setFormData((prev) => ({ ...prev, products: updatedProducts }));
+  };
+
+  const handleQuantityChange = (productId, quantity) => {
+    setFormData((prev) => ({
+      ...prev,
+      products: prev.products.map(p => 
+        p.product === productId 
+          ? { ...p, quantity: Math.max(1, parseInt(quantity) || 1) }
+          : p
+      )
+    }));
+  };
+
+  const removeProduct = (productId) => {
+    setFormData((prev) => ({
+      ...prev,
+      products: prev.products.filter(p => p.product !== productId)
+    }));
   };
 
   const handleImageChange = (e) => {
@@ -121,6 +152,11 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
       return;
     }
 
+    if (formData.products.length === 0) {
+      toast.error("Please select at least one product");
+      return;
+    }
+
     const form = new FormData();
     form.append("name", formData.name);
     form.append("description", formData.description);
@@ -129,7 +165,9 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     form.append("user_id", userId);
     form.append("created_by_admin", userId);
 
-    formData.products.forEach((id) => form.append("products", id));
+    // Send products as JSON string since FormData doesn't handle nested objects well
+    form.append("products", JSON.stringify(formData.products));
+    
     formData.images.forEach((image) => {
       if (image instanceof File) form.append("images", image);
     });
@@ -137,8 +175,13 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     if (isEditMode) {
       editMutation.mutate({ id: initialData._id, payload: form });
     } else {
-      createMutation.mutate({ formData: form, params: { user_id: userId } });
+      createMutation.mutate({ formData: form });
     }
+  };
+
+  const getProductName = (productId) => {
+    const product = apiProductsResponse?.data?.find(p => p._id === productId);
+    return product?.name || 'Unknown Product';
   };
 
   return (
@@ -170,13 +213,48 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
             })) || []
           }
           value={
-            apiProductsResponse?.data
-              ?.filter((p) => formData.products.includes(p._id))
-              .map((p) => ({ value: p._id, label: p.name })) || []
+            formData.products.map(p => {
+              const product = apiProductsResponse?.data?.find(prod => prod._id === p.product);
+              return product ? { value: product._id, label: product.name } : null;
+            }).filter(Boolean)
           }
           onChange={handleProductChange}
         />
         {productsError && <p className="text-red-500">Failed to load products</p>}
+        
+        {/* Product list with quantities */}
+        {formData.products.length > 0 && (
+          <div className="mt-4 space-y-3">
+            <Label>Selected Products & Quantities</Label>
+            {formData.products.map((productItem) => (
+              <div key={productItem.product} className="flex items-center gap-3 p-3 border rounded-lg">
+                <div className="flex-1">
+                  <span className="font-medium">{getProductName(productItem.product)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`qty-${productItem.product}`} className="text-sm">Qty:</Label>
+                  <Input
+                    id={`qty-${productItem.product}`}
+                    type="number"
+                    min="1"
+                    value={productItem.quantity}
+                    onChange={(e) => handleQuantityChange(productItem.product, e.target.value)}
+                    className="w-20"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeProduct(productItem.product)}
+                  className="text-red-500 hover:text-red-600"
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

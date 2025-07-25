@@ -23,6 +23,7 @@ import BrandEditor from '@/pages/brands/components/brand_editor';
 import BlogEditor from '@/pages/blogs/components/blog_editor';
 import ContactUs from '@/pages/contact_us';
 import Orders from '@/pages/orders';
+import OrderDetails from '@/pages/orders/components/OrderDetails';
 import Bundles from '@/pages/bundles';
 import BundleEditor from '@/pages/bundles/components/bundle_editor';
 
@@ -76,6 +77,7 @@ const Router = () => {
  <Route path="/dashboard/contact-us" element={< ContactUs/>} />
  {/* Orders */}
  <Route path="/dashboard/orders" element={< Orders/>} />
+ <Route path="/dashboard/orders/:orderId" element={< OrderDetails/>} />
     </Route>
     </Route>
     <Route path="*" element={<ErrorPage />} />
