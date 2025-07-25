@@ -28,6 +28,9 @@ import Orders from '@/pages/orders';
 import OrderDetails from '@/pages/orders/components/OrderDetails';
 import Bundles from '@/pages/bundles';
 import BundleEditor from '@/pages/bundles/components/bundle_editor';
+import Users from '@/pages/users';
+import UserEditor from '@/pages/users/components/user_editor';
+import UserDetails from '@/pages/users/components/user_details';
 
 const Router = () => {
   return (
@@ -83,6 +86,11 @@ const Router = () => {
  {/* Orders */}
  <Route path="/dashboard/orders" element={< Orders/>} />
  <Route path="/dashboard/orders/:orderId" element={< OrderDetails/>} />
+ {/* Users Routes */}
+ <Route path="/dashboard/users" element={<Users />} />
+ <Route path="/dashboard/users/add" element={<UserEditor />} />
+ <Route path="/dashboard/users/edit/:id" element={<UserEditor />} />
+ <Route path="/dashboard/users/:id" element={<UserDetails />} />
     </Route>
     </Route>
     <Route path="*" element={<ErrorPage />} />

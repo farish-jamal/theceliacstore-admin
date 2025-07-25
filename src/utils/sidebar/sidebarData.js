@@ -24,7 +24,9 @@ import {
   BadgePlus,
   CopyPlus,
   Package2,
-  LayoutGridIcon
+  LayoutGridIcon,
+  CreditCard,
+  Mail
 } from "lucide-react";
 import { getItem } from "../local_storage";
 const userName = getItem("userName") || "Admin";
@@ -52,6 +54,14 @@ export const data = {
       isActive: true,
       items: [],
       roles: [ "super_admin"], 
+    },
+    {
+      title: "Users",
+      url: "/dashboard/users",
+      icon: Users,
+      isActive: true,
+      items: [],
+      roles: ["super_admin","admin"],
     },
     {
       title: "Categories",
@@ -112,12 +122,19 @@ export const data = {
       roles: ["super_admin","admin"],
     },
     {
-      title: "Contact us form",
-      name: "Contact us form",
+      title: "Queries",
+      name: "Queries",
       url: "/dashboard/contact-us",
       icon: ContactIcon,
       roles: ["super_admin", "admin"],
     },
+    {
+      title: "Newsletter",
+      name: "Newsletter",
+      url: "/dashboard/newsletter",
+      icon: Mail,
+      roles: ["super_admin", "admin"],
+    }
     // {
     //   title: "Info & Policy",
     //   name: "Info & Policy",
@@ -158,5 +175,12 @@ export const data = {
       icon: Package2,
       roles: ["super_admin","admin"],
     },
+    {
+      title: "Transactions",
+      name: "Transactions",
+      url: "/dashboard/transactions",
+      icon: CreditCard,
+      roles: ["super_admin"],
+    }
   ]
 };
