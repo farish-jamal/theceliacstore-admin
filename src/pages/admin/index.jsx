@@ -76,7 +76,7 @@ const Admin = () => {
           disableBulkExport={false}
           onBulkExport={onOpenBulkExportDialog}
         />
-         <AdminsTable setadminsLength={setAdminsLength} params={params} />
+         <AdminsTable setadminsLength={setAdminsLength} params={params} setParams={setParams} />
         
          {/* <ExportCategoryDialog
           openDialog={openBulkExportDialog}

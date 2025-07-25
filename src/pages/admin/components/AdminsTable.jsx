@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { useNavigate } from "react-router";
 import { fetchAdmins } from "../helpers/fetchAdmins";
+import { deleteAdmin } from "../helpers/deleteAdmin";
 
 const AdminsTable = ({ setadminsLength, params, setParams }) => {
   const queryClient = useQueryClient();
@@ -40,18 +41,18 @@ const AdminsTable = ({ setadminsLength, params, setParams }) => {
     setSelectedAdmin(null);
   };
 
-  // const { mutate: deleteAdminMutation, isLoading: isDeleting } = useMutation({
-  //   mutationFn: deleteAdmins,
-  //   onSuccess: () => {
-  //     toast.success("Admin deleted successfully.");
-  //     queryClient.invalidateQueries(["admins"]);
-  //     handleCloseDialog();
-  //   },
-  //   onError: (error) => {
-  //     console.error(error);
-  //     toast.error("Failed to delete admin.");
-  //   },
-  // });
+  const { mutate: deleteAdminMutation, isLoading: isDeleting } = useMutation({
+    mutationFn: deleteAdmin,
+    onSuccess: () => {
+      toast.success("Admin deleted successfully.");
+      queryClient.invalidateQueries(["admins"]);
+      handleCloseDialog();
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to delete admin.");
+    },
+  });
 
   const handleDeleteAdmin = (id) => {
     deleteAdminMutation(id);
@@ -204,11 +205,11 @@ const AdminsTable = ({ setadminsLength, params, setParams }) => {
       <CustomDialog
         onOpen={openDelete}
         onClose={handleCloseDialog}
-        title={`Delete ${selectedAdmin?.name}`}
-        description="This action will permanently remove the admin account."
+        title={selectedAdmin?.name}
         modalType="Delete"
-        onConfirm={() => handleDeleteAdmin(selectedAdmin?._id)}
-        // isLoading={isDeleting}
+        onDelete={handleDeleteAdmin}
+        id={selectedAdmin?._id}
+        isLoading={isDeleting}
       />
     </>
   );

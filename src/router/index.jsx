@@ -13,6 +13,7 @@ import ProductDetails from '@/pages/products/components/product_details';
 import BrandDetails from '@/pages/brands/components/brand_details';
 import Admin from '@/pages/admin';
 import AddAdminCard from '@/pages/admin/components/AddAdminCard';
+import AdminEditor from '@/pages/admin/components/admin_editor';
 import Blogs from '@/pages/blogs';
 import SubCategories from '@/pages/sub_categories';
 import CategoryDetails from '@/pages/categories/components/category_details';
@@ -71,6 +72,7 @@ const Router = () => {
       {/* Admin Routes */}
       <Route path="/dashboard/admins" element={<Admin />} />
       <Route path="/dashboard/admins/add" element={<AddAdminCard />} />
+      <Route path="/dashboard/admins/edit/:id" element={<AdminEditor />} />
 {/* Blogs */}
 <Route path="/dashboard/blogs" element={< Blogs/>} />
 <Route path="/dashboard/blogs/add" element={<BlogEditor />} />
