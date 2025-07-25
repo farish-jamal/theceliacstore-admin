@@ -21,6 +21,7 @@ import CategoryEditor from '@/pages/categories/components/category_editor';
 import SubCategoryEditor from '@/pages/sub_categories/components/sub_category_editor';
 import BrandEditor from '@/pages/brands/components/brand_editor';
 import BlogEditor from '@/pages/blogs/components/blog_editor';
+import BlogDetails from '@/pages/blogs/components/BlogDetails';
 import ContactUs from '@/pages/contact_us';
 import Orders from '@/pages/orders';
 import OrderDetails from '@/pages/orders/components/OrderDetails';
@@ -73,6 +74,8 @@ const Router = () => {
 {/* Blogs */}
 <Route path="/dashboard/blogs" element={< Blogs/>} />
 <Route path="/dashboard/blogs/add" element={<BlogEditor />} />
+<Route path="/dashboard/blogs/edit/:id" element={<BlogEditor />} />
+<Route path="/dashboard/blogs/:id" element={<BlogDetails />} />
  {/* Contact Us */}
  <Route path="/dashboard/contact-us" element={< ContactUs/>} />
  {/* Orders */}

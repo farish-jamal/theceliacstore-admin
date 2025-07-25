@@ -14,7 +14,7 @@ const BlogEditor = () => {
     error,
   } = useQuery({
     queryKey: ["blog", id],
-    queryFn: () => fetchBlogById({ id }),
+    queryFn: () => fetchBlogById(id),
     enabled: !!id,
   });
 

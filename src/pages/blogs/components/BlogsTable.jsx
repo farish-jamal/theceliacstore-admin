@@ -9,6 +9,7 @@ import { CustomDialog } from "@/components/custom_dialog";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { fetchBlogs } from "../helpers/fetchBlogs";
+import { deleteBlog } from "../helpers/deleteBlog";
 
 const BlogsTable = ({ setBlogsLength, params, setParams }) => {
   const navigate = useNavigate();
@@ -36,18 +37,18 @@ const BlogsTable = ({ setBlogsLength, params, setParams }) => {
     setSelectedBlog(null);
   };
 
-  // const { mutate: deleteBlogMutation, isLoading: isDeleting } = useMutation({
-  //   mutationFn: deleteBlogs,
-  //   onSuccess: () => {
-  //     toast.success("Blog deleted successfully.");
-  //     queryClient.invalidateQueries(["blogs"]);
-  //     onCloseDialog();
-  //   },
-  //   onError: (error) => {
-  //     console.error(error);
-  //     toast.error("Failed to delete blog.");
-  //   },
-  // });
+  const { mutate: deleteBlogMutation, isLoading: isDeleting } = useMutation({
+    mutationFn: deleteBlog,
+    onSuccess: () => {
+      toast.success("Blog deleted successfully.");
+      queryClient.invalidateQueries(["blogs"]);
+      onCloseDialog();
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to delete blog.");
+    },
+  });
 
   const onDeleteClick = (id) => {
     deleteBlogMutation(id);
@@ -196,7 +197,7 @@ const BlogsTable = ({ setBlogsLength, params, setParams }) => {
         modalType="Delete"
         onDelete={onDeleteClick}
         id={selectedBlog?._id}
-        // isLoading={isDeleting}
+        isLoading={isDeleting}
       />
     </>
   );
