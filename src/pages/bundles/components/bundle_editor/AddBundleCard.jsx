@@ -165,8 +165,11 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     form.append("user_id", userId);
     form.append("created_by_admin", userId);
 
-    // Send products as JSON string since FormData doesn't handle nested objects well
-    form.append("products", JSON.stringify(formData.products));
+    // Push products one by one
+    formData.products.forEach((productItem, index) => {
+      form.append(`products[${index}][product]`, productItem.product);
+      form.append(`products[${index}][quantity]`, productItem.quantity);
+    });
     
     formData.images.forEach((image) => {
       if (image instanceof File) form.append("images", image);

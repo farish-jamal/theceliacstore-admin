@@ -106,31 +106,54 @@ const total = apiBundlesResponse?.data?.total || 0;
         </div>
       ),
     },
+
+    {
+      key: "products",
+      label: "Products",
+      render: (value) => (
+        <div className="flex flex-col gap-1 w-[18rem]">
+          <Typography variant="p" className="font-semibold text-sm">
+            {value?.length || 0} Product{(value?.length || 0) !== 1 ? 's' : ''}
+          </Typography>
+          {value && value.length > 0 && (
+            <div className="text-xs text-gray-500">
+              {value.slice(0, 2).map((product) => (
+                <div key={product._id} className="truncate">
+                  • {product.name}
+                </div>
+              ))}
+              {value.length > 2 && (
+                <div className="text-gray-400">
+                  +{value.length - 2} more...
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ),
+    },
     {
       key: "price",
       label: "Price",
-      render: (value) => `₹${value?.$numberDecimal ?? "0"}`,
+      render: (value) => `₹${value?.$numberDecimal ?? value ?? "0"}`,
     },
     {
       key: "discounted_price",
       label: "Discounted Price",
-      render: (value) => `₹${value?.$numberDecimal ?? "0"}`,
+      render: (value) => `₹${value?.$numberDecimal ?? value ?? "0"}`,
     },
-    {
-      key: "instock",
-      label: "In Stock",
-      render: (value) => (value ? "Yes" : "No"),
-    },
+    
+    
     {
       key: "createdAt",
       label: "Created At",
       render: (value, row) => (
         <div className="flex flex-col gap-1">
-          <Typography>
+          <Typography className="text-sm">
             {format(new Date(value), "dd/MM/yyyy hh:mm a")}
           </Typography>
           {value !== row.updatedAt && (
-            <Typography className="text-gray-500 text-sm">
+            <Typography className="text-gray-500 text-xs">
               Updated -{" "}
               {formatDistanceToNow(new Date(row.updatedAt), {
                 addSuffix: true,
