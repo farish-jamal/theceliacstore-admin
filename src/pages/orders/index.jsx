@@ -5,6 +5,10 @@ import { useDebounce } from "@uidotdev/usehooks";
 import { DateRangePicker } from "@/components/date_filter";
 import CustomActionMenu from "@/components/custom_action";
 import OrdersTable from "./components/OrdersTable";
+import SKUTable from "./components/SKUTable";
+import ViewSwitcher from "@/components/view_switcher";
+import StatusFilter from "@/components/status_filter";
+import { dummyOrders } from "./data/dummyOrders";
 
 
 const Orders = () => {
@@ -15,10 +19,13 @@ const Orders = () => {
     per_page: 50,
     search: "",
     service_id: serviceId,
+    status: "all",
   };
   const [searchText, setSearchText] = useState("");
   const [params, setParams] = useState(paramInitialState);
   const [ordersLength, setOrdersLength] = useState(0);
+  const [currentView, setCurrentView] = useState("orders");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const debouncedSearch = useDebounce(searchText, 500);
 
@@ -72,35 +79,79 @@ const Orders = () => {
         search: debouncedSearch,
       }));
     }
-  }, [debouncedSearch]);
+  }, [debouncedSearch, params.search]);
+
+  const handleStatusFilterChange = (status) => {
+    setStatusFilter(status);
+    setParams((prev) => ({
+      ...prev,
+      status: status,
+      page: 1, // Reset to first page when changing filter
+    }));
+  };
+
+  const handleViewChange = (view) => {
+    setCurrentView(view);
+  };
 
   return (
     <div className="flex flex-col">
       <NavbarItem
         title="Orders"
         breadcrumbs={breadcrumbs}
-        customBox={<DateRangePicker onChange={handleDateRangeChange} />}
+        customBox={
+          <div className="flex items-center gap-3">
+            <ViewSwitcher 
+              currentView={currentView} 
+              onViewChange={handleViewChange} 
+            />
+            <DateRangePicker onChange={handleDateRangeChange} />
+          </div>
+        }
       />
 
       {/* <OrderStats params={params} /> */}
 
       <div className="px-4">
-        <CustomActionMenu
-          title="Orders"
-          total={ordersLength}
-          disableAdd={true}
-          searchText={searchText}
-          handleSearch={handleSearch}
-          onRowsPerPageChange={onRowsPerPageChange}
-          showRowSelection={false}
-          disableBulkExport={true}
-        />
-        <OrdersTable
-          setOrdersLength={setOrdersLength}
-          params={params}
-          setParams={setParams}
-          showAllOnSinglePage={true}
-        />
+        <div className="mb-4 rounded-lg absolute top-10 right-5">
+          <ViewSwitcher 
+            currentView={currentView} 
+            onViewChange={handleViewChange} 
+          />
+        </div>
+        
+        <div className="flex items-center justify-between mb-4">
+          <CustomActionMenu
+            title={currentView === "orders" ? "Orders" : "SKU Analysis"}
+            total={ordersLength}
+            disableAdd={true}
+            searchText={searchText}
+            handleSearch={handleSearch}
+            onRowsPerPageChange={onRowsPerPageChange}
+            showRowSelection={false}
+            disableBulkExport={true}
+          />
+          
+          {currentView === "orders" && (
+            <StatusFilter
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              placeholder="Filter by Status"
+            />
+          )}
+        </div>
+
+        {currentView === "orders" ? (
+          <OrdersTable
+            setOrdersLength={setOrdersLength}
+            params={params}
+            setParams={setParams}
+            showAllOnSinglePage={true}
+            useDummyData={true}
+          />
+        ) : (
+          <SKUTable orders={dummyOrders} />
+        )}
       </div>
     </div>
   );
