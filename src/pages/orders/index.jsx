@@ -120,7 +120,7 @@ const Orders = () => {
           />
         </div>
         
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-4 mb-4">
           <CustomActionMenu
             title={currentView === "orders" ? "Orders" : "SKU Analysis"}
             total={ordersLength}
@@ -132,13 +132,11 @@ const Orders = () => {
             disableBulkExport={true}
           />
           
-          {currentView === "orders" && (
-            <StatusFilter
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              placeholder="Filter by Status"
-            />
-          )}
+          <StatusFilter
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            placeholder="Filter by Status"
+          />
         </div>
 
         {currentView === "orders" ? (
@@ -150,7 +148,7 @@ const Orders = () => {
             useDummyData={true}
           />
         ) : (
-          <SKUTable orders={dummyOrders} />
+          <SKUTable orders={dummyOrders} statusFilter={statusFilter} />
         )}
       </div>
     </div>

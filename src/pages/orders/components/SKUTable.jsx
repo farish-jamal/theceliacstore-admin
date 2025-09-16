@@ -14,7 +14,7 @@ import {
 import { useNavigate } from "react-router";
 import { generateSKUData } from "../data/dummyOrders";
 
-const SKUTable = ({ orders }) => {
+const SKUTable = ({ orders, statusFilter = "all" }) => {
   const navigate = useNavigate();
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [selectedSKU, setSelectedSKU] = useState(null);
@@ -24,7 +24,7 @@ const SKUTable = ({ orders }) => {
     return <div className="p-4 text-center text-red-500">Error: Invalid orders data</div>;
   }
 
-  const skuData = generateSKUData(orders);
+  const skuData = generateSKUData(orders, statusFilter);
 
   if (!skuData || skuData.length === 0) {
     return <div className="p-4 text-center text-gray-500">No SKU data available</div>;
@@ -167,63 +167,6 @@ const SKUTable = ({ orders }) => {
     }
   });
 
-  // Custom row renderer for sub-rows
-  const renderRow = (item, index) => {
-    if (item.isSubRow) {
-      return (
-        <tr key={`${item.parentSku}-${item.subRowIndex}`} className="bg-gray-50">
-          <td className="px-4 py-2"></td>
-          <td className="px-4 py-2 pl-8">
-            <Typography variant="small" className="text-muted-foreground">
-              Order: {item.orderId}
-            </Typography>
-          </td>
-          <td className="px-4 py-2">
-            <Typography variant="small">
-              {item.customer.name}
-            </Typography>
-          </td>
-          <td className="px-4 py-2">
-            <Typography variant="small" className="font-medium">
-              {item.quantity} units
-            </Typography>
-          </td>
-          <td className="px-4 py-2">
-            <Badge
-              variant={
-                item.orderStatus === "delivered"
-                  ? "success"
-                  : item.orderStatus === "cancelled"
-                  ? "destructive"
-                  : item.orderStatus === "pending"
-                  ? "outline"
-                  : "secondary"
-              }
-              className="text-xs"
-            >
-              {item.orderStatus.toUpperCase()}
-            </Badge>
-          </td>
-          <td className="px-4 py-2">
-            <Typography variant="small" className="text-green-600">
-              ₹{(item.price * item.quantity).toFixed(2)}
-            </Typography>
-          </td>
-          <td className="px-4 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/dashboard/orders/${item.orderId}`)}
-              className="text-xs"
-            >
-              View
-            </Button>
-          </td>
-        </tr>
-      );
-    }
-    return null;
-  };
 
   return (
     <>

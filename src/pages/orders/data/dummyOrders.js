@@ -256,10 +256,15 @@ export const ORDER_STATUSES = [
 ];
 
 // Generate SKU view data from orders
-export const generateSKUData = (orders) => {
+export const generateSKUData = (orders, statusFilter = "all") => {
   const skuMap = new Map();
   
-  orders.forEach(order => {
+  // Filter orders by status if not "all"
+  const filteredOrders = statusFilter === "all" 
+    ? orders 
+    : orders.filter(order => order.status === statusFilter);
+  
+  filteredOrders.forEach(order => {
     order.items.forEach(item => {
       const product = item.product;
       const sku = product.sku;
