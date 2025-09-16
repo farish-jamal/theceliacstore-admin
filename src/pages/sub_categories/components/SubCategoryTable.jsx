@@ -122,6 +122,11 @@ const SubCategory = ({ setCategoryLength, params, setParams }) => {
     {
       key: "description",
       label: "Description",
+      render: (value) => (
+        <Typography variant="p" className="text-sm w-[20rem] text-wrap line-clamp-3">
+          {value || "N/A"}
+        </Typography>
+      ),
     },
     {
       key: "category",

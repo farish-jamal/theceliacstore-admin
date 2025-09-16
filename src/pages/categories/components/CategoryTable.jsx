@@ -11,7 +11,6 @@ import { useNavigate } from "react-router";
 import { deleteCategory } from "../helpers/deleteCategory";
 import { fetchCategory } from "../helpers/fetchCategory";
 
-
 const CategoryTable = ({ setCategoryLength, params, setParams }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -22,8 +21,8 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
     error,
   } = useQuery({
     queryKey: ["category", params],
-    queryFn: () => fetchCategory({ params }),  });
-
+    queryFn: () => fetchCategory({ params }),
+  });
 
   const [openDelete, setOpenDelete] = useState(false);
   const [categoryData, setcategoryData] = useState(null);
@@ -63,7 +62,7 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
   const onDeleteClick = (id) => {
     deleteProuductsMutation(id);
   };
-  const categorys = apicategorysResponse?.data?.categories|| [];
+  const categorys = apicategorysResponse?.data?.categories || [];
   const total = apicategorysResponse?.data?.total || 0;
 
   const onNavigateToEdit = (category) => {
@@ -94,15 +93,15 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
       label: "Name",
       render: (value, row) => (
         <div className="flex items-center gap-2">
-         <img
-  src={
-    row.banner_image ||
-    row.images?.[0] ||
-    "https://placehold.co/64x64?text=No+Image&font=roboto"
-  }
-  alt={value}
-  className="h-16 w-16 rounded-lg object-contain"
-/>
+          <img
+            src={
+              row.banner_image ||
+              row.images?.[0] ||
+              "https://placehold.co/64x64?text=No+Image&font=roboto"
+            }
+            alt={value}
+            className="h-16 w-16 rounded-lg object-contain"
+          />
           <Typography variant="p" className="text-wrap w-[15rem]">
             {value}
           </Typography>
@@ -131,13 +130,18 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
     {
       key: "description",
       label: "Description",
+      render: (value) => (
+        <Typography variant="p" className="text-sm w-[20rem] text-wrap line-clamp-3">
+          {value}
+        </Typography>
+      ),
     },
     {
       key: "newly_launched",
       label: " Newly Launched",
       render: (value) => (value ? "Yes" : "No"),
     },
-    
+
     // {
     //   key: "category_type",
     //   label: "category type",
@@ -214,7 +218,6 @@ const CategoryTable = ({ setCategoryLength, params, setParams }) => {
               action: () => onOpenDialog(row),
               className: "text-red-500",
             },
-
           ]}
         />
       ),
