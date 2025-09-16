@@ -22,5 +22,11 @@ bundle:"api/bundles",
 //users
 users: "api/auth/user",
 //bulk_export_products
-bulk_export_products:"api/product/export"
+bulk_export_products:"api/product/export",
+//dashboard
+dashboard_overview: "api/dashboard/overview",
+sales_overview: "api/dashboard/sales-overview",
+monthly_growth: "api/dashboard/monthly-growth",
+revenue_trend: "api/dashboard/revenue-trend",
+category_distribution: "api/dashboard/category-distribution"
 }

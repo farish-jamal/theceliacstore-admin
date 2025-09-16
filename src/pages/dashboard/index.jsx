@@ -9,7 +9,7 @@ const Dashboard = () => {
       <NavbarItem title="Dashboard" />
       <AnalyticsCards />
 
-<DashboardCharts />
+      <DashboardCharts />
     </div>
   );
 };
