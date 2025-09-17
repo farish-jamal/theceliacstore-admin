@@ -13,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 import { fetchOrdersByProduct } from "../helpers/fetchOrdersByProduct";
 const SKUTable = ({ productsWithOrders = [], isLoading = false }) => {
   const navigate = useNavigate();
@@ -30,6 +32,57 @@ const SKUTable = ({ productsWithOrders = [], isLoading = false }) => {
   });
 
   const orderDetails = ordersByProductResponse?.response?.data || null;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-8 w-24" />
+          </div>
+          
+          {/* Table header skeleton */}
+          <div className="grid grid-cols-6 gap-4 p-4 border-b">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          
+          {/* Table rows skeleton */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="grid grid-cols-6 gap-4 p-4 border-b">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-12 w-12 rounded" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-8 w-8" />
+            </div>
+          ))}
+          
+          {/* Pagination skeleton */}
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-8" />
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   if (!Array.isArray(productsWithOrders)) {
     return <div className="p-4 text-center text-red-500">Error: Invalid products data</div>;
@@ -196,7 +249,51 @@ const SKUTable = ({ productsWithOrders = [], isLoading = false }) => {
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
+          {ordersLoading ? (
+            <div className="space-y-4 p-4">
+              {/* Stats skeleton */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i}>
+                    <Skeleton className="h-4 w-20 mb-2" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+              
+              {/* Orders list skeleton */}
+              <div>
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-4 max-h-96 overflow-auto">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-28" />
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
               <div>
                 <Typography variant="small" className="text-muted-foreground">
@@ -415,6 +512,7 @@ const SKUTable = ({ productsWithOrders = [], isLoading = false }) => {
               </div>
             )}
           </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

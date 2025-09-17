@@ -10,6 +10,7 @@ import ViewSwitcher from "@/components/view_switcher";
 import StatusFilter from "@/components/status_filter";
 import { fetchProductsWithOrders } from "./helpers/fetchProductsWithOrders";
 import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 const Orders = () => {
@@ -110,6 +111,9 @@ const Orders = () => {
     setCurrentView(view);
   };
 
+  // Show loading skeleton when switching views and data is loading
+  const isInitialLoading = currentView === "sku" && productsWithOrdersLoading && productsWithOrders.length === 0;
+
   return (
     <div className="flex flex-col">
       <NavbarItem
@@ -136,37 +140,83 @@ const Orders = () => {
           />
         </div>
         
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <CustomActionMenu
-            title={currentView === "orders" ? "Orders" : "SKU Analysis"}
-            total={ordersLength}
-            disableAdd={true}
-            searchText={searchText}
-            handleSearch={handleSearch}
-            onRowsPerPageChange={onRowsPerPageChange}
-            showRowSelection={false}
-            disableBulkExport={true}
-          />
-          
-          <StatusFilter
-            value={statusFilter}
-            onChange={handleStatusFilterChange}
-            placeholder="Filter by Status"
-          />
-        </div>
-
-        {currentView === "orders" ? (
-          <OrdersTable
-            setOrdersLength={setOrdersLength}
-            params={params}
-            setParams={setParams}
-            showAllOnSinglePage={true}
-          />
+        {isInitialLoading ? (
+          // Loading skeleton for the entire content area
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-10 w-40" />
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-24" />
+              </div>
+              <Skeleton className="h-10 w-36" />
+            </div>
+            
+            {/* Table loading skeleton */}
+            <div className="bg-white rounded-lg border p-6">
+              <div className="space-y-4">
+                {/* Header row */}
+                <div className="grid grid-cols-6 gap-4 p-4 border-b">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} className="h-4 w-20" />
+                  ))}
+                </div>
+                
+                {/* Data rows */}
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="grid grid-cols-6 gap-4 p-4 border-b">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-12 w-12 rounded" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : (
-          <SKUTable 
-            productsWithOrders={productsWithOrders} 
-            isLoading={productsWithOrdersLoading}
-          />
+          <>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <CustomActionMenu
+                title={currentView === "orders" ? "Orders" : "SKU Analysis"}
+                total={ordersLength}
+                disableAdd={true}
+                searchText={searchText}
+                handleSearch={handleSearch}
+                onRowsPerPageChange={onRowsPerPageChange}
+                showRowSelection={false}
+                disableBulkExport={true}
+              />
+              
+              <StatusFilter
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                placeholder="Filter by Status"
+              />
+            </div>
+
+            {currentView === "orders" ? (
+              <OrdersTable
+                setOrdersLength={setOrdersLength}
+                params={params}
+                setParams={setParams}
+                showAllOnSinglePage={true}
+              />
+            ) : (
+              <SKUTable 
+                productsWithOrders={productsWithOrders} 
+                isLoading={productsWithOrdersLoading}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
