@@ -11,6 +11,7 @@ export const fetchOrders = async ({ params }) => {
 
     return apiResponse;
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching orders:', error);
+    throw error;
   }
 };

@@ -14,7 +14,7 @@ import {
 import { useNavigate } from "react-router";
 import { generateSKUData } from "../data/dummyOrders";
 
-const SKUTable = ({ orders, statusFilter = "all" }) => {
+const SKUTable = ({ orders, statusFilter = "all", isLoading = false }) => {
   const navigate = useNavigate();
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [selectedSKU, setSelectedSKU] = useState(null);
@@ -173,7 +173,7 @@ const SKUTable = ({ orders, statusFilter = "all" }) => {
       <CustomTable
         columns={columns}
         data={skuData}
-        isLoading={false}
+        isLoading={isLoading}
         error={null}
         hidePagination={true}
       />

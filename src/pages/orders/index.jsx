@@ -9,6 +9,8 @@ import SKUTable from "./components/SKUTable";
 import ViewSwitcher from "@/components/view_switcher";
 import StatusFilter from "@/components/status_filter";
 import { dummyOrders } from "./data/dummyOrders";
+import { fetchOrders } from "./helpers/fetchOrders";
+import { useQuery } from "@tanstack/react-query";
 
 
 const Orders = () => {
@@ -28,6 +30,20 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const debouncedSearch = useDebounce(searchText, 500);
+
+  // Fetch orders for SKU analysis - get all orders without pagination
+  const {
+    data: allOrdersResponse,
+    isLoading: allOrdersLoading,
+  } = useQuery({
+    queryKey: ["all-orders", { ...params, per_page: 1000, page: 1 }],
+    queryFn: () => fetchOrders({ params: { ...params, per_page: 1000, page: 1 } }),
+    enabled: currentView === "sku", // Only fetch when SKU view is active
+  });
+
+  const allOrders = Array.isArray(allOrdersResponse?.response?.data?.data)
+    ? allOrdersResponse.response.data.data
+    : dummyOrders;
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);
@@ -145,10 +161,14 @@ const Orders = () => {
             params={params}
             setParams={setParams}
             showAllOnSinglePage={true}
-            useDummyData={true}
+            useDummyData={false}
           />
         ) : (
-          <SKUTable orders={dummyOrders} statusFilter={statusFilter} />
+          <SKUTable 
+            orders={allOrders} 
+            statusFilter={statusFilter}
+            isLoading={allOrdersLoading}
+          />
         )}
       </div>
     </div>

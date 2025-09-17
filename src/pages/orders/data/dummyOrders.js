@@ -266,14 +266,26 @@ export const generateSKUData = (orders, statusFilter = "all") => {
   
   filteredOrders.forEach(order => {
     order.items.forEach(item => {
-      const product = item.product;
-      const sku = product.sku;
+      // Handle both real API data and dummy data structures
+      // Check if item has type field, if not assume it's a product
+      const isBundle = item.type === 'bundle';
+      const isProduct = item.type === 'product' || !item.type; // Default to product if no type
+      
+      let product;
+      if (isBundle) {
+        product = item.bundle;
+      } else if (isProduct) {
+        product = item.product;
+      }
+      
+      // For real API data, we might not have SKU, so use product ID as fallback
+      const sku = product?.sku || product?._id || 'unknown';
       
       if (!skuMap.has(sku)) {
         skuMap.set(sku, {
           sku: sku,
-          productName: product.name,
-          productId: product._id,
+          productName: product?.name || 'Unknown Product',
+          productId: product?._id,
           totalQuantity: 0,
           totalRevenue: 0,
           orderCount: 0,
@@ -282,13 +294,39 @@ export const generateSKUData = (orders, statusFilter = "all") => {
       }
       
       const skuData = skuMap.get(sku);
-      skuData.totalQuantity += item.quantity;
-      skuData.totalRevenue += (item.price * item.quantity);
+      skuData.totalQuantity += item.quantity || 0;
+      
+      // Handle different price formats including $numberDecimal objects
+      const getPrice = (priceField) => {
+        if (!priceField) return 0;
+        if (typeof priceField === 'number') return priceField;
+        if (priceField.$numberDecimal) return parseFloat(priceField.$numberDecimal);
+        return parseFloat(priceField) || 0;
+      };
+      
+      // Calculate revenue based on available price fields
+      let itemPrice = 0;
+      
+      if (item.discounted_total_amount !== null && item.discounted_total_amount !== undefined) {
+        itemPrice = getPrice(item.discounted_total_amount) / (item.quantity || 1);
+      } else if (item.total_amount !== null && item.total_amount !== undefined) {
+        itemPrice = getPrice(item.total_amount) / (item.quantity || 1);
+      } else if (product?.discounted_price !== null && product?.discounted_price !== undefined) {
+        itemPrice = getPrice(product.discounted_price);
+      } else if (product?.price !== null && product?.price !== undefined) {
+        itemPrice = getPrice(product.price);
+      }
+      
+      skuData.totalRevenue += (itemPrice * (item.quantity || 0));
+      
       skuData.orders.push({
         orderId: order._id,
-        quantity: item.quantity,
-        price: item.price,
-        customer: order.customer,
+        quantity: item.quantity || 0,
+        price: itemPrice,
+        customer: order.customer || { 
+          name: order.address?.name || 'Unknown Customer',
+          email: order.address?.mobile || 'No contact'
+        },
         orderDate: order.createdAt,
         orderStatus: order.status
       });

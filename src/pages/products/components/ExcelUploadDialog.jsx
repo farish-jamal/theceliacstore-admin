@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { UploadCloud, FileCheck, X, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { extractDataFromExcel } from "@/utils/excel_reader";
-import { generateTemplate } from "@/utils/excel_generate";
+// import { generateTemplate } from "@/utils/excel_generate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { columnMapper } from "@/constant";
 import { productBulkUpload } from "./helpers/bulkUpload";
@@ -20,7 +20,7 @@ import { fetchCategory } from "@/pages/categories/helpers/fetchCategory";
 const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  // const [isGenerating, setIsGenerating] = useState(false);
   const queryClient = useQueryClient();
 
   const bulkUploadMutation = useMutation({
@@ -78,38 +78,73 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
     if (!file) {
       toast.error("Upload a file to proceed");
     } else {
-      const excelData = await extractDataFromExcel(file);
-      const categoryMap = new Map(
-        apiCategoriesResponse?.response?.data?.map((cat) => [cat.name, cat._id])
-      );
-      const transformedData = excelData.map((row) => {
-        const mappedRow = {};
+      try {
+        const excelData = await extractDataFromExcel(file);
+        console.log("Excel data extracted:", excelData);
+        
+        const categoryMap = new Map(
+          apicategorysResponse?.response?.data?.map((cat) => [cat.name, cat._id])
+        );
+        console.log("Category map:", categoryMap);
+        
+        const transformedData = excelData.map((row) => {
+          const mappedRow = {};
 
-        Object.entries(row).forEach(([key, value]) => {
-          const newKey = columnMapper[key] || key;
-          mappedRow[newKey] =
-            newKey === "category" ? categoryMap.get(value) || value : value;
+          Object.entries(row).forEach(([key, value]) => {
+            const newKey = columnMapper[key] || key.toLowerCase().replace(/\s+/g, '_');
+            
+            // Handle category mapping
+            if (newKey === "category") {
+              mappedRow[newKey] = categoryMap.get(value) || value;
+            }
+            // Handle sub_category mapping if needed
+            else if (newKey === "sub_category") {
+              mappedRow[newKey] = categoryMap.get(value) || value;
+            }
+            // Handle tags array (already processed in excel_reader)
+            else if (newKey === "tags") {
+              mappedRow[newKey] = Array.isArray(value) ? value : [value].filter(Boolean);
+            }
+            // Handle boolean fields
+            else if (newKey === "is_best_seller") {
+              mappedRow[newKey] = value === "true" || value === true || value === 1;
+            }
+            // Handle numeric fields
+            else if (["price", "discounted_price", "salesperson_discounted_price", "dnd_discounted_price", "inventory"].includes(newKey)) {
+              mappedRow[newKey] = parseFloat(value) || 0;
+            }
+            // Handle other fields
+            else {
+              mappedRow[newKey] = value;
+            }
+          });
+
+          return mappedRow;
         });
-
-        return mappedRow;
-      });
-      bulkUploadMutation.mutate(transformedData);
+        
+        console.log("Final transformed data for API:", transformedData);
+        bulkUploadMutation.mutate(transformedData);
+        
+      } catch (error) {
+        console.error("Error processing Excel file:", error);
+        toast.error("Error processing Excel file. Please check the format.");
+      }
     }
   };
 
-  const handleDownloadTemplate = () => {
-    setIsGenerating(true);
-    const categoryDropdownOptions = apicategorysResponse?.response?.data?.map(
-      (cat) => {
-        return cat.name;
-      }
-    );
-    const transformedArray = Object.keys(columnMapper);
-    setTimeout(() => {
-      generateTemplate(transformedArray, categoryDropdownOptions);
-      setIsGenerating(false);
-    }, 1000);
-  };
+  // const handleDownloadTemplate = () => {
+  //   setIsGenerating(true);
+  //   const categoryDropdownOptions = apicategorysResponse?.response?.data?.map(
+  //     (cat) => {
+  //       return cat.name;
+  //     }
+  //   );
+  //   const transformedArray = Object.keys(columnMapper);
+  //   setTimeout(() => {
+  //     generateTemplate(transformedArray, categoryDropdownOptions);
+  //     setIsGenerating(false);
+  //   }, 1000);
+  // };
 
   return (
     <Dialog open={openDialog} onOpenChange={setOpenDialog}>
@@ -162,7 +197,7 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
             </button>
           </div>
         )}
-        <Button
+        {/* <Button
           className={`${
             isGenerating ? "pointer-events-none opacity-70" : ""
           } w-full transition cursor-pointer`}
@@ -170,7 +205,7 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
         >
           <Download size={18} />{" "}
           {isGenerating ? "Downloading..." : "Download Excel Template"}
-        </Button>
+        </Button> */}
         <Button
           className={`${
             bulkUploadMutation.isPending ? "pointer-events-none opacity-70" : ""

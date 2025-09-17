@@ -39,9 +39,8 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Modify params for single page mode
   const queryParams = showAllOnSinglePage 
-    ? { ...params, per_page: 1000, page: 1 } // Fetch up to 1000 orders on single page
+    ? { ...params, per_page: 50, page: 1 }
     : params;
 
   const {
@@ -51,7 +50,7 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
   } = useQuery({
     queryKey: ["orders", queryParams],
     queryFn: () => fetchOrders({ params: queryParams }),
-    enabled: !useDummyData, // Only fetch from API if not using dummy data
+    enabled: !useDummyData,
   });
 
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
@@ -63,7 +62,6 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
     useMutation({
       mutationFn: ({ orderId, status }) => {
         if (useDummyData) {
-          // Simulate API call with dummy data
           return new Promise((resolve) => {
             setTimeout(() => {
               setDummyOrdersState(prev => 
@@ -90,33 +88,31 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       },
     });
 
-  // Use dummy data or API data based on useDummyData prop
   let orders, orderTotal, isLoading, error;
   
   if (useDummyData) {
-    // Filter dummy orders based on params
     let filteredOrders = [...dummyOrdersState];
     
-    // Filter by status
     if (params.status && params.status !== "all") {
       filteredOrders = filteredOrders.filter(order => order.status === params.status);
     }
     
-    // Filter by search text
     if (params.search) {
       const searchLower = params.search.toLowerCase();
       filteredOrders = filteredOrders.filter(order => 
         order._id.toLowerCase().includes(searchLower) ||
-        order.customer.name.toLowerCase().includes(searchLower) ||
-        order.customer.email.toLowerCase().includes(searchLower) ||
+        order.customer?.name?.toLowerCase().includes(searchLower) ||
+        order.customer?.email?.toLowerCase().includes(searchLower) ||
+        order.address?.name?.toLowerCase().includes(searchLower) ||
+        order.address?.mobile?.toLowerCase().includes(searchLower) ||
         order.items.some(item => 
-          item.product.name.toLowerCase().includes(searchLower) ||
-          item.product.sku.toLowerCase().includes(searchLower)
+          item.product?.name?.toLowerCase().includes(searchLower) ||
+          item.product?.sku?.toLowerCase().includes(searchLower) ||
+          item.bundle?.name?.toLowerCase().includes(searchLower)
         )
       );
     }
     
-    // Filter by date range
     if (params.start_date && params.end_date) {
       filteredOrders = filteredOrders.filter(order => {
         const orderDate = new Date(order.createdAt);
@@ -124,7 +120,6 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       });
     }
     
-    // Sort by date (newest first)
     filteredOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     orders = filteredOrders;
@@ -168,10 +163,10 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       render: (_, row) => (
         <div className="flex flex-col gap-1">
           <Typography variant="p" className="font-medium">
-            {row.customer?.name || 'Unknown Customer'}
+            {row.address?.name || row.customer?.name || 'Unknown Customer'}
           </Typography>
           <Typography variant="small" className="text-gray-500">
-            {row.customer?.email}
+            {row.address?.mobile || row.customer?.email || 'No contact info'}
           </Typography>
         </div>
       ),
@@ -180,10 +175,17 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       key: "items",
       label: "Items",
       render: (items) => {
-        const itemList = items?.map((item) => {
-          // Check if it's a bundle or product
-          const isBundle = item.bundle;
-          const itemData = isBundle ? item.bundle : item.product;
+        const itemList = items?.map((item) => { 
+          const isBundle = item.type === 'bundle';
+          const isProduct = item.type === 'product' || !item.type;
+          
+          let itemData;
+          if (isBundle) {
+            itemData = item.bundle;
+          } else if (isProduct) {
+            itemData = item.product;
+          }
+          
           const itemName = itemData?.name || 'Unknown Item';
           const quantity = item.quantity || 0;
           
@@ -229,18 +231,24 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
     {
       key: "totalAmount",
       label: "Total Amount",
-      render: (totalAmount, row) => (
-        <div className="flex flex-col gap-1">
-          <Typography variant="p" className="font-semibold text-green-600">
-            ₹{(totalAmount || row?.discountedPriceAfterCoupon || 0).toFixed(2)}
-          </Typography>
-          {row?.totalAmount !== row?.discountedPriceAfterCoupon && (
-            <Typography variant="small" className="text-gray-500 line-through">
-              ₹{(row?.totalAmount || 0).toFixed(2)}
+      render: (totalAmount, row) => {
+        const discountedAmount = row?.discountedTotalAmount;
+        const originalAmount = row?.totalAmount || totalAmount || 0;
+        const finalAmount = discountedAmount !== undefined ? discountedAmount : originalAmount;
+        
+        return (
+          <div className="flex flex-col gap-1">
+            <Typography variant="p" className="font-semibold text-green-600">
+              ₹{finalAmount.toFixed(2)}
             </Typography>
-          )}
-        </div>
-      ),
+            {discountedAmount !== undefined && originalAmount !== discountedAmount && (
+              <Typography variant="small" className="text-gray-500 line-through">
+                ₹{originalAmount.toFixed(2)}
+              </Typography>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "createdAt",
