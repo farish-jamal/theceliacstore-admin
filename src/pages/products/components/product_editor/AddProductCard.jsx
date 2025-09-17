@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Select from "react-select";
-import { XCircle } from "lucide-react";
+import { XCircle, Loader2, Sparkles } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,12 +34,14 @@ const TAG_OPTIONS = [
 
 const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
   const navigate = useNavigate();
+  const [isGeneratingSKU, setIsGeneratingSKU] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     saleprice: "",
+    sku: "",
     images: [],
     imagePreviews: [],
     bannerImage: null,
@@ -103,6 +105,33 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
       variants: updatedVariants,
     }));
   };
+
+  // Generate SKU function
+  const generateSKU = () => {
+    setIsGeneratingSKU(true);
+    
+    // Mock AI generation delay
+    setTimeout(() => {
+      const generateRandomString = (length) => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+
+      const randomSuffix = generateRandomString(10);
+      const generatedSKU = `SKU-${randomSuffix}`;
+      
+      setFormData((prev) => ({
+        ...prev,
+        sku: generatedSKU,
+      }));
+      
+      setIsGeneratingSKU(false);
+    }, 1500); // 1.5 second delay to mock AI processing
+  };
   const {
     data: apiSubcategoriesResponse,
     isLoading: isSubcategoriesLoading,
@@ -120,6 +149,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
         description: initialData.small_description || "",
         price: initialData.price || "",
         saleprice: initialData.discounted_price || "",
+        sku: initialData.sku || "",
         images: [],
         imagePreviews: Array.isArray(initialData.images)
           ? initialData.images.map((imgUrl) => ({
@@ -242,6 +272,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
   
     const form = new FormData();
     form.append("name", formData.name);
+    form.append("sku", formData.sku);
     form.append("small_description", formData.description);
     form.append("price", formData.price);
     form.append("discounted_price", formData.saleprice);
@@ -299,6 +330,39 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
       
 
       <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border">
+        {/* SKU */}
+        <div className="space-y-2">
+          <Label>SKU</Label>
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              name="sku"
+              value={formData.sku}
+              onChange={handleChange}
+              placeholder="Product SKU"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              onClick={generateSKU}
+              variant="outline"
+              className="px-4 whitespace-nowrap"
+              disabled={isGeneratingSKU}
+            >
+              {isGeneratingSKU ? (
+                <>
+                  Generating...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </>
+              ) : (
+                <>
+                  Generate <Sparkles className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
         {/* Name */}
         <div className="space-y-2">
           <Label>Name</Label>
