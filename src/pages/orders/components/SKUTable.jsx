@@ -1,88 +1,94 @@
 import React, { useState } from "react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 import CustomTable from "@/components/custom_table";
 import Typography from "@/components/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useNavigate } from "react-router";
-import { generateSKUData } from "../data/dummyOrders";
-
-const SKUTable = ({ orders, statusFilter = "all", isLoading = false }) => {
+import { fetchOrdersByProduct } from "../helpers/fetchOrdersByProduct";
+const SKUTable = ({ productsWithOrders = [], isLoading = false }) => {
   const navigate = useNavigate();
-  const [expandedRows, setExpandedRows] = useState(new Set());
-  const [selectedSKU, setSelectedSKU] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [openOrdersDialog, setOpenOrdersDialog] = useState(false);
 
-  if (!orders || !Array.isArray(orders)) {
-    return <div className="p-4 text-center text-red-500">Error: Invalid orders data</div>;
+  // Fetch detailed orders for the selected product
+  const {
+    data: ordersByProductResponse,
+    isLoading: ordersLoading,
+  } = useQuery({
+    queryKey: ["orders-by-product", selectedProduct?.product?._id],
+    queryFn: () => fetchOrdersByProduct(selectedProduct.product._id),
+    enabled: !!selectedProduct?.product?._id && openOrdersDialog,
+  });
+
+  const orderDetails = ordersByProductResponse?.response?.data || null;
+
+  if (!Array.isArray(productsWithOrders)) {
+    return <div className="p-4 text-center text-red-500">Error: Invalid products data</div>;
   }
 
-  const skuData = generateSKUData(orders, statusFilter);
+  // Filter products based on status if needed (this would require order-level filtering)
+  const filteredProducts = productsWithOrders;
 
-  if (!skuData || skuData.length === 0) {
-    return <div className="p-4 text-center text-gray-500">No SKU data available</div>;
+  if (filteredProducts.length === 0) {
+    return <div className="p-4 text-center text-gray-500">No product data available</div>;
   }
 
-  const toggleRowExpansion = (sku) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(sku)) {
-      newExpanded.delete(sku);
-    } else {
-      newExpanded.add(sku);
-    }
-    setExpandedRows(newExpanded);
-  };
 
-  const viewAllOrders = (skuItem) => {
-    setSelectedSKU(skuItem);
+  const viewAllOrders = (product) => {
+    setSelectedProduct(product);
     setOpenOrdersDialog(true);
   };
 
   const columns = [
     {
-      key: "expand",
-      label: "",
-      render: (_, row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => toggleRowExpansion(row.sku)}
-          className="p-1 h-8 w-8 hover:bg-gray-100"
-        >
-          {expandedRows.has(row.sku) ? (
-            <ChevronDown className="h-4 w-4 text-gray-600" />
+      key: "product",
+      label: "Product",
+      render: (product) => (
+        <div className="flex items-center gap-3">
+          {product.banner_image ? (
+            <img 
+              src={product.banner_image} 
+              alt={product.name}
+              className="w-12 h-12 object-cover rounded-lg"
+            />
           ) : (
-            <ChevronRight className="h-4 w-4 text-gray-600" />
+            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-400 text-xs">No Image</span>
+            </div>
           )}
-        </Button>
-      ),
-    },
-    {
-      key: "sku",
-      label: "SKU",
-      render: (sku) => (
-        <div className="flex flex-col gap-1">
-          <Typography variant="p" className="font-mono font-medium text-blue-600">
-            {sku}
-          </Typography>
+          <div className="flex flex-col gap-1">
+            <Typography variant="p" className="font-medium">
+              {product.name}
+            </Typography>
+            <Typography variant="small" className="text-gray-500 font-mono">
+              ID: {product._id.slice(-8)}
+            </Typography>
+          </div>
         </div>
       ),
     },
     {
-      key: "productName", 
-      label: "Product Name",
-      render: (productName) => (
+      key: "pricing",
+      label: "Pricing",
+      render: (_, row) => (
         <div className="flex flex-col gap-1">
           <Typography variant="p" className="font-medium">
-            {productName}
+            ₹{row.product.price}
           </Typography>
+          {row.product.discounted_price && row.product.discounted_price !== row.product.price && (
+            <Typography variant="small" className="text-green-600">
+              Discounted: ₹{row.product.discounted_price}
+            </Typography>
+          )}
         </div>
       ),
     },
@@ -101,12 +107,12 @@ const SKUTable = ({ orders, statusFilter = "all", isLoading = false }) => {
       ),
     },
     {
-      key: "orderCount",
+      key: "totalOrders",
       label: "Total Orders",
-      render: (orderCount) => (
+      render: (totalOrders) => (
         <div className="flex flex-col gap-1">
           <Typography variant="p" className="font-medium">
-            {orderCount}
+            {totalOrders}
           </Typography>
           <Typography variant="small" className="text-gray-500">
             orders
@@ -123,7 +129,21 @@ const SKUTable = ({ orders, statusFilter = "all", isLoading = false }) => {
             ₹{totalRevenue.toFixed(2)}
           </Typography>
           <Typography variant="small" className="text-gray-500">
-            total earned
+            original price
+          </Typography>
+        </div>
+      ),
+    },
+    {
+      key: "totalDiscountedRevenue",
+      label: "Discounted Revenue",
+      render: (totalDiscountedRevenue) => (
+        <div className="flex flex-col gap-1">
+          <Typography variant="p" className="font-semibold text-emerald-600">
+            ₹{totalDiscountedRevenue.toFixed(2)}
+          </Typography>
+          <Typography variant="small" className="text-gray-500">
+            actual earned
           </Typography>
         </div>
       ),
@@ -139,62 +159,51 @@ const SKUTable = ({ orders, statusFilter = "all", isLoading = false }) => {
           className="flex items-center gap-2"
         >
           <Eye className="h-4 w-4" />
-          View Orders
+          View Details
         </Button>
       ),
     },
   ];
 
-  // Create expanded data for rendering
-  const expandedData = [];
-  skuData.forEach((skuItem) => {
-    expandedData.push(skuItem);
-    
-    if (expandedRows.has(skuItem.sku)) {
-      // Add recent orders as sub-rows
-      const recentOrders = skuItem.orders
-        .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
-        .slice(0, 3); // Show only 3 most recent orders
-      
-      recentOrders.forEach((order, index) => {
-        expandedData.push({
-          ...order,
-          isSubRow: true,
-          parentSku: skuItem.sku,
-          subRowIndex: index,
-        });
-      });
-    }
-  });
-
-
   return (
     <>
       <CustomTable
         columns={columns}
-        data={skuData}
+        data={filteredProducts}
         isLoading={isLoading}
         error={null}
         hidePagination={true}
       />
 
-      {/* Orders Dialog */}
+      {/* Product Details Dialog */}
       <Dialog open={openOrdersDialog} onOpenChange={setOpenOrdersDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>
-              Orders for {selectedSKU?.productName} ({selectedSKU?.sku})
+            <DialogTitle className="flex items-center gap-3">
+              {selectedProduct?.product?.banner_image && (
+                <img 
+                  src={selectedProduct.product.banner_image} 
+                  alt={selectedProduct.product.name}
+                  className="w-12 h-12 object-cover rounded-lg"
+                />
+              )}
+              <div>
+                <div className="text-lg font-semibold">{selectedProduct?.product?.name}</div>
+                <div className="text-sm text-muted-foreground font-mono">
+                  ID: {selectedProduct?.product?._id}
+                </div>
+              </div>
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
               <div>
                 <Typography variant="small" className="text-muted-foreground">
                   Total Quantity
                 </Typography>
                 <Typography variant="p" className="font-semibold text-blue-600">
-                  {selectedSKU?.totalQuantity} units
+                  {selectedProduct?.totalQuantity} units
                 </Typography>
               </div>
               <div>
@@ -202,7 +211,7 @@ const SKUTable = ({ orders, statusFilter = "all", isLoading = false }) => {
                   Total Orders
                 </Typography>
                 <Typography variant="p" className="font-semibold">
-                  {selectedSKU?.orderCount}
+                  {selectedProduct?.totalOrders}
                 </Typography>
               </div>
               <div>
@@ -210,77 +219,201 @@ const SKUTable = ({ orders, statusFilter = "all", isLoading = false }) => {
                   Total Revenue
                 </Typography>
                 <Typography variant="p" className="font-semibold text-green-600">
-                  ₹{selectedSKU?.totalRevenue?.toFixed(2)}
+                  ₹{selectedProduct?.totalRevenue?.toFixed(2)}
+                </Typography>
+              </div>
+              <div>
+                <Typography variant="small" className="text-muted-foreground">
+                  Discounted Revenue
+                </Typography>
+                <Typography variant="p" className="font-semibold text-emerald-600">
+                  ₹{selectedProduct?.totalDiscountedRevenue?.toFixed(2)}
                 </Typography>
               </div>
             </div>
 
-            <div className="space-y-3">
-              {selectedSKU?.orders
-                ?.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
-                .map((order, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <Typography variant="p" className="font-medium">
-                        Order: {order.orderId}
-                      </Typography>
-                      <Typography variant="small" className="text-muted-foreground">
-                        {format(new Date(order.orderDate), "dd/MM/yyyy hh:mm a")}
-                      </Typography>
-                    </div>
-                    <Badge
-                      variant={
-                        order.orderStatus === "delivered"
-                          ? "success"
-                          : order.orderStatus === "cancelled"
-                          ? "destructive"
-                          : order.orderStatus === "pending"
-                          ? "outline"
-                          : "secondary"
-                      }
-                    >
-                      {order.orderStatus.toUpperCase()}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Typography variant="small" className="text-muted-foreground">
-                        Customer
-                      </Typography>
-                      <Typography variant="p">
-                        {order.customer.name}
-                      </Typography>
-                      <Typography variant="small" className="text-muted-foreground">
-                        {order.customer.email}
-                      </Typography>
-                    </div>
-                    <div>
-                      <Typography variant="small" className="text-muted-foreground">
-                        Quantity & Amount
-                      </Typography>
-                      <Typography variant="p">
-                        {order.quantity} units × ₹{order.price} = ₹{(order.quantity * order.price).toFixed(2)}
-                      </Typography>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-3 flex justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setOpenOrdersDialog(false);
-                        navigate(`/dashboard/orders/${order.orderId}`);
-                      }}
-                    >
-                      View Order Details
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
+              <div>
+                <Typography variant="small" className="text-muted-foreground">
+                  Original Price
+                </Typography>
+                <Typography variant="p" className="font-semibold">
+                  ₹{selectedProduct?.product?.price}
+                </Typography>
+              </div>
+              <div>
+                <Typography variant="small" className="text-muted-foreground">
+                  Discounted Price
+                </Typography>
+                <Typography variant="p" className="font-semibold text-green-600">
+                  ₹{selectedProduct?.product?.discounted_price}
+                </Typography>
+              </div>
             </div>
+
+            {ordersLoading ? (
+              <div className="text-center py-8">
+                <Typography variant="p" className="text-muted-foreground">
+                  Loading order details...
+                </Typography>
+              </div>
+            ) : orderDetails?.orders && orderDetails.orders.length > 0 ? (
+              <div className="space-y-3">
+                {(() => {
+                  const filteredOrders = orderDetails.orders.filter(order => 
+                    order.items.some(item => {
+                      // Check if it's a direct product match
+                      if (item.type === "product" && item.product._id === selectedProduct?.product?._id) {
+                        return true;
+                      }
+                      // Check if it's part of a bundle
+                      if (item.type === "bundle" && item.bundle?.products) {
+                        return item.bundle.products.some(bundleProduct => 
+                          bundleProduct.product === selectedProduct?.product?._id
+                        );
+                      }
+                      return false;
+                    })
+                  );
+                  return (
+                    <Typography variant="h4" className="font-semibold">
+                      Order History ({filteredOrders.length} orders)
+                    </Typography>
+                  );
+                })()}
+                
+
+                {orderDetails.orders
+                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                  .map((order) => {
+                    // Find the specific product item in this order (direct product or within bundle)
+                    let productItem = order.items.find(
+                      item => item.type === "product" && item.product._id === selectedProduct.product._id
+                    );
+                    
+                    // If not found as direct product, check if it's part of a bundle
+                    let bundleItem = null;
+                    let bundleProductInfo = null;
+                    
+                    if (!productItem) {
+                      bundleItem = order.items.find(item => 
+                        item.type === "bundle" && item.bundle?.products?.some(bundleProduct => 
+                          bundleProduct.product === selectedProduct.product._id
+                        )
+                      );
+                      
+                      if (bundleItem) {
+                        bundleProductInfo = bundleItem.bundle.products.find(bundleProduct => 
+                          bundleProduct.product === selectedProduct.product._id
+                        );
+                      }
+                    }
+                    
+                    // Skip if product is not found in either direct items or bundles
+                    if (!productItem && !bundleItem) return null;
+                    
+                    return (
+                      <div key={order._id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <Typography variant="p" className="font-medium">
+                              Order: {order._id.slice(-8)}
+                            </Typography>
+                            <Typography variant="small" className="text-muted-foreground">
+                              {format(new Date(order.createdAt), "dd/MM/yyyy hh:mm a")}
+                            </Typography>
+                          </div>
+                          <Badge
+                            variant={
+                              order.status === "delivered"
+                                ? "success"
+                                : order.status === "cancelled"
+                                ? "destructive"
+                                : order.status === "pending"
+                                ? "outline"
+                                : "secondary"
+                            }
+                          >
+                            {order.status.toUpperCase()}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Typography variant="small" className="text-muted-foreground">
+                              Customer Details
+                            </Typography>
+                            <Typography variant="p" className="font-medium">
+                              {order.address.name}
+                            </Typography>
+                            <Typography variant="small" className="text-muted-foreground">
+                              {order.address.mobile}
+                            </Typography>
+                            <Typography variant="small" className="text-muted-foreground">
+                              {order.address.city}, {order.address.state} - {order.address.pincode}
+                            </Typography>
+                          </div>
+                          <div>
+                            <Typography variant="small" className="text-muted-foreground">
+                              Product Details
+                            </Typography>
+                            {productItem ? (
+                              <>
+                                <Typography variant="p">
+                                  Quantity: {productItem.quantity} units
+                                </Typography>
+                                <Typography variant="p" className="text-green-600">
+                                  Amount: ₹{productItem.total_amount}
+                                </Typography>
+                                <Typography variant="small" className="text-muted-foreground">
+                                  Type: Direct Product
+                                </Typography>
+                              </>
+                            ) : bundleItem && bundleProductInfo ? (
+                              <>
+                                <Typography variant="p">
+                                  Quantity: {bundleProductInfo.quantity * bundleItem.quantity} units
+                                </Typography>
+                                <Typography variant="p" className="text-blue-600">
+                                  Part of Bundle: {bundleItem.bundle.name}
+                                </Typography>
+                                <Typography variant="p" className="text-green-600">
+                                  Bundle Amount: ₹{bundleItem.total_amount}
+                                </Typography>
+                                <Typography variant="small" className="text-muted-foreground">
+                                  Type: Bundle Product ({bundleProductInfo.quantity} per bundle × {bundleItem.quantity} bundles)
+                                </Typography>
+                              </>
+                            ) : null}
+                            <Typography variant="small" className="text-muted-foreground">
+                              Total Order: ₹{order.totalAmount}
+                            </Typography>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setOpenOrdersDialog(false);
+                              navigate(`/dashboard/orders/${order._id}`);
+                            }}
+                          >
+                            View Full Order
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Typography variant="p">
+                  No order details available for this product.
+                </Typography>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

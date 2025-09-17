@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ORDER_STATUSES } from "../../pages/orders/data/dummyOrders";
+import { ORDER_STATUSES } from "../../constant";
 
 const StatusFilter = ({ value, onChange, placeholder = "Filter by Status" }) => {
   return (

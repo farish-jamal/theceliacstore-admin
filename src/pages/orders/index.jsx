@@ -8,8 +8,7 @@ import OrdersTable from "./components/OrdersTable";
 import SKUTable from "./components/SKUTable";
 import ViewSwitcher from "@/components/view_switcher";
 import StatusFilter from "@/components/status_filter";
-import { dummyOrders } from "./data/dummyOrders";
-import { fetchOrders } from "./helpers/fetchOrders";
+import { fetchProductsWithOrders } from "./helpers/fetchProductsWithOrders";
 import { useQuery } from "@tanstack/react-query";
 
 
@@ -31,19 +30,20 @@ const Orders = () => {
 
   const debouncedSearch = useDebounce(searchText, 500);
 
-  // Fetch orders for SKU analysis - get all orders without pagination
+  // Fetch products with orders for SKU analysis
   const {
-    data: allOrdersResponse,
-    isLoading: allOrdersLoading,
+    data: productsWithOrdersResponse,
+    isLoading: productsWithOrdersLoading,
   } = useQuery({
-    queryKey: ["all-orders", { ...params, per_page: 1000, page: 1 }],
-    queryFn: () => fetchOrders({ params: { ...params, per_page: 1000, page: 1 } }),
+    queryKey: ["products-with-orders", currentView, params],
+    queryFn: () => fetchProductsWithOrders({ params }),
     enabled: currentView === "sku", // Only fetch when SKU view is active
   });
 
-  const allOrders = Array.isArray(allOrdersResponse?.response?.data?.data)
-    ? allOrdersResponse.response.data.data
-    : dummyOrders;
+  // Parse the API response - the data structure is { data: [...], message: "...", success: true }
+  const productsWithOrders = Array.isArray(productsWithOrdersResponse?.response?.data)
+    ? productsWithOrdersResponse.response.data
+    : [];
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);
@@ -161,13 +161,11 @@ const Orders = () => {
             params={params}
             setParams={setParams}
             showAllOnSinglePage={true}
-            useDummyData={false}
           />
         ) : (
           <SKUTable 
-            orders={allOrders} 
-            statusFilter={statusFilter}
-            isLoading={allOrdersLoading}
+            productsWithOrders={productsWithOrders} 
+            isLoading={productsWithOrdersLoading}
           />
         )}
       </div>

@@ -4,7 +4,7 @@ import ActionMenu from "@/components/action_menu";
 import { Eye, Pencil } from "lucide-react";
 import CustomTable from "@/components/custom_table";
 import Typography from "@/components/typography";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/dialog";
 import { fetchOrders } from "../helpers/fetchOrders";
 import { updateOrderStatus } from "../helpers/updateOrderStatus";
-import { dummyOrders } from "../data/dummyOrders";
 
 const ORDER_STATUSES = [
   "pending",
@@ -35,7 +34,7 @@ const ORDER_STATUSES = [
   "cancelled",
 ];
 
-const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage = false, useDummyData = true }) => {
+const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage = false }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -50,36 +49,20 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
   } = useQuery({
     queryKey: ["orders", queryParams],
     queryFn: () => fetchOrders({ params: queryParams }),
-    enabled: !useDummyData,
   });
 
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [newStatus, setNewStatus] = useState("");
-  const [dummyOrdersState, setDummyOrdersState] = useState(dummyOrders);
 
   const { mutate: updateOrderStatusMutation, isLoading: isUpdating } =
     useMutation({
       mutationFn: ({ orderId, status }) => {
-        if (useDummyData) {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              setDummyOrdersState(prev => 
-                prev.map(order => 
-                  order._id === orderId ? { ...order, status } : order
-                )
-              );
-              resolve({ success: true });
-            }, 500);
-          });
-        }
         return updateOrderStatus({ orderId, status });
       },
       onSuccess: () => {
         toast.success("Order status updated successfully.");
-        if (!useDummyData) {
-          queryClient.invalidateQueries(["orders"]);
-        }
+        queryClient.invalidateQueries(["orders"]);
         setOpenStatusDialog(false);
       },
       onError: (error) => {
@@ -88,52 +71,15 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       },
     });
 
-  let orders, orderTotal, isLoading, error;
-  
-  if (useDummyData) {
-    let filteredOrders = [...dummyOrdersState];
-    
-    if (params.status && params.status !== "all") {
-      filteredOrders = filteredOrders.filter(order => order.status === params.status);
-    }
-    
-    if (params.search) {
-      const searchLower = params.search.toLowerCase();
-      filteredOrders = filteredOrders.filter(order => 
-        order._id.toLowerCase().includes(searchLower) ||
-        order.customer?.name?.toLowerCase().includes(searchLower) ||
-        order.customer?.email?.toLowerCase().includes(searchLower) ||
-        order.address?.name?.toLowerCase().includes(searchLower) ||
-        order.address?.mobile?.toLowerCase().includes(searchLower) ||
-        order.items.some(item => 
-          item.product?.name?.toLowerCase().includes(searchLower) ||
-          item.product?.sku?.toLowerCase().includes(searchLower) ||
-          item.bundle?.name?.toLowerCase().includes(searchLower)
-        )
-      );
-    }
-    
-    if (params.start_date && params.end_date) {
-      filteredOrders = filteredOrders.filter(order => {
-        const orderDate = new Date(order.createdAt);
-        return orderDate >= params.start_date && orderDate <= params.end_date;
-      });
-    }
-    
-    filteredOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    orders = filteredOrders;
-    orderTotal = filteredOrders.length;
-    isLoading = false;
-    error = null;
-  } else {
-    orders = Array.isArray(apiOrdersResponse?.response?.data?.data)
+  const orders = useMemo(() => {
+    return Array.isArray(apiOrdersResponse?.response?.data?.data)
       ? apiOrdersResponse.response.data.data
       : [];
-    orderTotal = apiOrdersResponse?.response?.data?.total || 0;
-    isLoading = apiLoading;
-    error = apiError;
-  }
+  }, [apiOrdersResponse]);
+  
+  const orderTotal = apiOrdersResponse?.response?.data?.total || 0;
+  const isLoading = apiLoading;
+  const error = apiError;
 
   useEffect(() => {
     setOrdersLength(orders?.length);

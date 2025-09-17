@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ArrowLeft, Plus, Minus, Save, Trash2, Mail, CreditCard, Edit } from "lucide-react";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Typography from "@/components/typography";
 
-import { dummyOrders } from "../data/dummyOrders";
+import { fetchOrderById } from "../helpers/fetchOrderById";
 
 const OrderDetails = () => {
   const { orderId } = useParams();
@@ -34,12 +34,18 @@ const OrderDetails = () => {
     "cancelled",
   ];
 
-  // Find order from dummy data
-  const order = dummyOrders.find(order => order._id === orderId);
+  // Fetch order from API
+  const { data: orderResponse, isLoading: isLoadingOrder, error } = useQuery({
+    queryKey: ["order", orderId],
+    queryFn: () => fetchOrderById({ id: orderId }),
+    enabled: !!orderId,
+  });
+
+  const order = orderResponse?.response?.data;
 
   // Update status mutation (simulated)
   const { mutate: updateStatus, isLoading: isUpdatingStatus } = useMutation({
-    mutationFn: ({ orderId, status }) => {
+    mutationFn: () => {
       // Simulate API call
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -58,7 +64,7 @@ const OrderDetails = () => {
 
   // Update order items mutation (simulated)
   const { mutate: updateOrder, isLoading: isUpdating } = useMutation({
-    mutationFn: ({ orderId, items }) => {
+    mutationFn: () => {
       // Simulate API call
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -77,7 +83,7 @@ const OrderDetails = () => {
 
   // Send order details mutation (simulated)
   const { mutate: sendDetails } = useMutation({
-    mutationFn: ({ orderId }) => {
+    mutationFn: () => {
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve({ success: true });
@@ -94,7 +100,7 @@ const OrderDetails = () => {
 
   // Send payment link mutation (simulated)
   const { mutate: sendPayment } = useMutation({
-    mutationFn: ({ orderId }) => {
+    mutationFn: () => {
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve({ success: true });
@@ -142,7 +148,7 @@ const OrderDetails = () => {
   // Handle status change
   const handleStatusChange = (newStatus) => {
     setSelectedStatus(newStatus);
-    setStatusChanged(newStatus !== order.status);
+    setStatusChanged(newStatus !== (order.status || ''));
   };
 
   // Update entire order (status + items)
@@ -190,19 +196,29 @@ const OrderDetails = () => {
   // Calculate totals
   const calculateTotal = () => {
     return orderItems.reduce((total, item) => {
-      const price = item.price || 0;
-      return total + (price * (item.quantity || 0));
+      // Use discounted_total_amount if available, otherwise calculate from product price and quantity
+      const itemTotal = item.discounted_total_amount || 
+                       (item.product?.discounted_price || item.product?.price || 0) * (item.quantity || 0);
+      return total + itemTotal;
     }, 0);
   };
 
-  if (!order) {
+  if (isLoadingOrder) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <Typography variant="h3">Loading order details...</Typography>
+      </div>
+    );
+  }
+
+  if (error || !order) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <Typography variant="h3" className="text-red-500">Order Not Found</Typography>
         <Typography variant="p" className="text-muted-foreground">
           Order with ID "{orderId}" could not be found.
         </Typography>
-        <Button onClick={() => navigate("/dashboard/orders")} variant="outline">
+        <Button onClick={() => navigate("/orders")} variant="outline">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Orders
         </Button>
@@ -287,15 +303,15 @@ const OrderDetails = () => {
           <CardContent className="space-y-3">
             <div>
               <Typography variant="small" className="text-muted-foreground">Name</Typography>
-              <Typography variant="p" className="font-medium">{order.customer.name}</Typography>
+              <Typography variant="p" className="font-medium">{order.address?.name || 'N/A'}</Typography>
             </div>
             <div>
               <Typography variant="small" className="text-muted-foreground">Email</Typography>
-              <Typography variant="p">{order.customer.email}</Typography>
+              <Typography variant="p">{order.user?.email || 'N/A'}</Typography>
             </div>
             <div>
               <Typography variant="small" className="text-muted-foreground">Phone</Typography>
-              <Typography variant="p">{order.customer.phone}</Typography>
+              <Typography variant="p">{order.address?.mobile || 'N/A'}</Typography>
             </div>
           </CardContent>
         </Card>
@@ -309,7 +325,7 @@ const OrderDetails = () => {
             <div>
               <Typography variant="small" className="text-muted-foreground">Order Date</Typography>
               <Typography variant="p" className="font-medium">
-                {format(new Date(order.createdAt), "dd/MM/yyyy hh:mm a")}
+                {order.createdAt ? format(new Date(order.createdAt), "dd/MM/yyyy hh:mm a") : 'N/A'}
               </Typography>
             </div>
             <div>
@@ -325,7 +341,7 @@ const OrderDetails = () => {
                     : "secondary"
                 }
               >
-                {order.status.toUpperCase()}
+                {order.status?.toUpperCase() || 'UNKNOWN'}
               </Badge>
             </div>
             <div>
@@ -342,9 +358,9 @@ const OrderDetails = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <Typography variant="p" className="font-medium">{order.shippingAddress.street}</Typography>
-              <Typography variant="p">{order.shippingAddress.city}, {order.shippingAddress.state}</Typography>
-              <Typography variant="p">{order.shippingAddress.pincode}</Typography>
+              <Typography variant="p" className="font-medium">{order.address?.address || 'N/A'}</Typography>
+              <Typography variant="p">{order.address?.city || 'N/A'}, {order.address?.state || 'N/A'}</Typography>
+              <Typography variant="p">{order.address?.pincode || 'N/A'}</Typography>
             </div>
           </CardContent>
         </Card>
@@ -373,14 +389,14 @@ const OrderDetails = () => {
             ) : (
               orderItems.map((item, index) => {
                 const itemName = item.product?.name || 'Unknown Item';
-                const itemPrice = item.price || 0;
+                const itemPrice = item.product?.discounted_price || item.product?.price || 0;
                 
                 return (
                   <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
                     <div className="flex-1">
                       <Typography variant="p" className="font-medium">{itemName}</Typography>
                       <Typography variant="small" className="text-muted-foreground">
-                        SKU: {item.product?.sku} • ₹{itemPrice.toFixed(2)} each
+                        {item.product?.sku ? `SKU: ${item.product.sku} • ` : ''}₹{itemPrice.toFixed(2)} each
                       </Typography>
                     </div>
                     
@@ -437,13 +453,13 @@ const OrderDetails = () => {
                 ₹{calculateTotal().toFixed(2)}
               </Typography>
             </div>
-            {order.totalAmount !== order.discountedPriceAfterCoupon && (
+            {(order.totalAmount || 0) !== (order.discountedTotalAmount || 0) && (
               <div className="flex justify-between items-center mt-2">
                 <Typography variant="small" className="text-muted-foreground">
-                  Original Total: ₹{order.totalAmount?.toFixed(2)}
+                  Original Total: ₹{(order.totalAmount || 0).toFixed(2)}
                 </Typography>
                 <Typography variant="small" className="text-green-600">
-                  Final Total: ₹{order.discountedPriceAfterCoupon?.toFixed(2)}
+                  Final Total: ₹{(order.discountedTotalAmount || 0).toFixed(2)}
                 </Typography>
               </div>
             )}

@@ -16,3 +16,12 @@ export const columnMapper = {
     "Tags": "tags",
     "Created By Admin": "created_by_admin"
   };
+
+export const ORDER_STATUSES = [
+  { value: "all", label: "All Status" },
+  { value: "pending", label: "Pending" },
+  { value: "processing", label: "Processing" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" }
+];
