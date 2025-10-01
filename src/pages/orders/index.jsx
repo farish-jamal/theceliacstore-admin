@@ -41,9 +41,10 @@ const Orders = () => {
     enabled: currentView === "sku", // Only fetch when SKU view is active
   });
 
-  // Parse the API response - the data structure is { data: [...], message: "...", success: true }
-  const productsWithOrders = Array.isArray(productsWithOrdersResponse?.response?.data)
-    ? productsWithOrdersResponse.response.data
+  // Parse the API response - apiService wraps response in { response: {...} }
+  // Actual structure: { response: { data: { data: [...], total: N }, message: "...", success: true } }
+  const productsWithOrders = Array.isArray(productsWithOrdersResponse?.response?.data?.data)
+    ? productsWithOrdersResponse.response.data.data
     : [];
 
   const handleSearch = (e) => {
