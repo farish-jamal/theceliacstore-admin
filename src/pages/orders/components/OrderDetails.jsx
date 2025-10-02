@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Typography from "@/components/typography";
 
 import { fetchOrderById } from "../helpers/fetchOrderById";
+import { updateOrder } from "../helpers/updateOrder";
 
 const OrderDetails = () => {
   const { orderId } = useParams();
@@ -44,41 +45,19 @@ const OrderDetails = () => {
 
   const order = orderResponse?.response?.data;
 
-  // Update status mutation (simulated)
-  const { mutate: updateStatus, isLoading: isUpdatingStatus } = useMutation({
-    mutationFn: () => {
-      // Simulate API call
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 1000);
-      });
-    },
+  // Update order mutation using real API
+  const { mutate: updateOrderMutation, isLoading: isUpdating } = useMutation({
+    mutationFn: (updateData) => updateOrder(updateData),
     onSuccess: () => {
-      toast.success("Order status updated successfully.");
-      setStatusChanged(false);
-    },
-    onError: () => {
-      toast.error("Failed to update order status.");
-    },
-  });
-
-  // Update order items mutation (simulated)
-  const { mutate: updateOrder, isLoading: isUpdating } = useMutation({
-    mutationFn: () => {
-      // Simulate API call
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 1000);
-      });
-    },
-    onSuccess: () => {
-      toast.success("Order items updated successfully.");
+      toast.success("Order updated successfully.");
       setHasChanges(false);
+      setStatusChanged(false);
+      // Optionally refetch the order data to get the latest state
+      // queryClient.invalidateQueries(["order", orderId]);
     },
-    onError: () => {
-      toast.error("Failed to update order items.");
+    onError: (error) => {
+      console.error("Update order error:", error);
+      toast.error("Failed to update order. Please try again.");
     },
   });
 
@@ -155,32 +134,43 @@ const OrderDetails = () => {
   // Update entire order (status + items)
   const handleUpdateOrder = async () => {
     try {
-      // Update status if changed
-      if (statusChanged) {
-        updateStatus({
-          orderId,
-          status: selectedStatus,
-        });
-      }
-      
-      // Update items if changed
-      if (hasChanges) {
-        const updateData = {
-          orderId,
-          items: orderItems.map((item, index) => ({
-            index,
-            quantity: item.quantity,
-          }))
-        };
-        updateOrder(updateData);
-      }
-      
       // If no changes, show info message
       if (!statusChanged && !hasChanges) {
         toast.info("No changes to update");
+        return;
       }
+
+      // Prepare update data
+      const updateData = {
+        orderId,
+        // Always include status as it's required by the API
+        status: selectedStatus,
+      };
+
+      // Add products if items changed
+      if (hasChanges) {
+        // Convert orderItems to the API format
+        updateData.products = orderItems
+          .filter(item => item.product?._id) // Only include items with valid product IDs
+          .map(item => ({
+            productId: item.product._id,
+            newQuantity: item.quantity,
+          }));
+
+        // If there are bundles in the order, handle them separately
+        // Note: You may need to track bundles separately if your order structure includes them
+        updateData.bundles = []; // Add bundle logic here if needed
+      }
+
+      // Add addressId if available (you might want to make this editable in the future)
+      if (order.address?._id) {
+        updateData.addressId = order.address._id;
+      }
+
+      updateOrderMutation(updateData);
     } catch (error) {
       console.error("Update order error:", error);
+      toast.error("Failed to prepare order update.");
     }
   };
 
@@ -543,7 +533,7 @@ const OrderDetails = () => {
       <div className="flex justify-start">
         <Button
           onClick={handleUpdateOrder}
-          disabled={isUpdating || isUpdatingStatus}
+          disabled={isUpdating}
           className={`${
             hasChanges || statusChanged 
               ? "bg-green-600 hover:bg-green-700 text-white" 
@@ -552,7 +542,7 @@ const OrderDetails = () => {
           size="lg"
         >
           <Save className="h-5 w-5 mr-2" />
-          {(isUpdating || isUpdatingStatus) ? "Updating..." : 
+          {isUpdating ? "Updating..." : 
            (hasChanges || statusChanged) ? "Update Order ●" : "Update Order"}
         </Button>
         

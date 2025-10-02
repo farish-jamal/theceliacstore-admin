@@ -48,9 +48,9 @@ const processRowData = (rawData) => {
   const processedData = [];
   const rowMap = new Map();
 
-  rawData.forEach(row => {
-    const name = row.name || row.Name;
-    if (!name) return;
+  rawData.forEach((row, index) => {
+    // Use name if available, otherwise use row index as unique identifier
+    const name = row.name || row.Name || `product_${index}`;
 
     if (!rowMap.has(name)) {
       // Create new product entry
