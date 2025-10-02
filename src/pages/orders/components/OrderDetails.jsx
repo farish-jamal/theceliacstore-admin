@@ -162,10 +162,6 @@ const OrderDetails = () => {
         updateData.bundles = []; // Add bundle logic here if needed
       }
 
-      // Add addressId if available (you might want to make this editable in the future)
-      if (order.address?._id) {
-        updateData.addressId = order.address._id;
-      }
 
       updateOrderMutation(updateData);
     } catch (error) {
