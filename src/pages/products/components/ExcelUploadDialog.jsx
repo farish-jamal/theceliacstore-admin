@@ -7,7 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UploadCloud, FileCheck, X, Download, Upload } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { UploadCloud, FileCheck, X, Download, Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { extractDataFromExcel } from "@/utils/excel_reader";
 // import { generateTemplate } from "@/utils/excel_generate";
@@ -20,24 +21,32 @@ import { fetchCategory } from "@/pages/categories/helpers/fetchCategory";
 const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [batchProgress, setBatchProgress] = useState(null);
   // const [isGenerating, setIsGenerating] = useState(false);
   const queryClient = useQueryClient();
 
   const bulkUploadMutation = useMutation({
-    mutationFn: (excelData) => productBulkUpload({ payload: excelData }),
+    mutationFn: ({ excelData, onBatchProgress }) => productBulkUpload({ 
+      payload: excelData, 
+      onBatchProgress 
+    }),
     onSuccess: (data) => {
+      setBatchProgress(null);
       if (data?.data?.failed?.length === 0) {
-        toast.success("Products uploaded successfully!");
+        toast.success(`All ${data?.data?.successful} products uploaded successfully!`);
         setFile(null);
         setOpenDialog(false);
       } else {
         toast.error(
-          `${data?.data?.failed?.length} failed to upload. Try again.`
+          `${data?.data?.successful} products uploaded successfully, ${data?.data?.failed?.length} failed. Check console for details.`
         );
+        console.log("Failed items:", data?.data?.failed);
+        console.log("Failed batches:", data?.data?.failedBatches);
       }
       queryClient.invalidateQueries(["products"]);
     },
     onError: (error) => {
+      setBatchProgress(null);
       toast.error(`Upload failed: ${error.message}`);
     },
   });
@@ -72,6 +81,10 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
     } else {
       toast.error("Please select a valid .xls or .xlsx format");
     }
+  };
+
+  const handleBatchProgress = (progress) => {
+    setBatchProgress(progress);
   };
 
   const handleUploadBulk = async () => {
@@ -123,7 +136,21 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
         });
         
         console.log("Final transformed data for API:", transformedData);
-        bulkUploadMutation.mutate(transformedData);
+        
+        // Initialize progress
+        setBatchProgress({
+          currentBatch: 0,
+          totalBatches: Math.ceil(transformedData.length / 50),
+          currentBatchSize: 0,
+          totalProcessed: 0,
+          totalFailed: 0,
+          completed: false
+        });
+        
+        bulkUploadMutation.mutate({ 
+          excelData: transformedData, 
+          onBatchProgress: handleBatchProgress 
+        });
         
       } catch (error) {
         console.error("Error processing Excel file:", error);
@@ -192,9 +219,56 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
               <FileCheck size={20} />
               <p className="text-sm font-medium">{file.name}</p>
             </div>
-            <button onClick={() => setFile(null)}>
+            <button onClick={() => setFile(null)} disabled={bulkUploadMutation.isPending}>
               <X size={18} />
             </button>
+          </div>
+        )}
+
+        {/* Batch Progress Display */}
+        {batchProgress && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium">Upload Progress</h4>
+              <div className="flex items-center gap-2">
+                {batchProgress.completed ? (
+                  <CheckCircle size={16} className="text-green-500" />
+                ) : (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                )}
+                <span className="text-sm text-gray-600">
+                  Batch {batchProgress.currentBatch}/{batchProgress.totalBatches}
+                </span>
+              </div>
+            </div>
+            
+            <Progress 
+              value={(batchProgress.currentBatch / batchProgress.totalBatches) * 100} 
+              className="mb-2"
+            />
+            
+            <div className="flex justify-between text-xs text-gray-600">
+              <span>Processed: {batchProgress.totalProcessed}</span>
+              {batchProgress.totalFailed > 0 && (
+                <span className="text-red-600 flex items-center gap-1">
+                  <AlertCircle size={12} />
+                  Failed: {batchProgress.totalFailed}
+                </span>
+              )}
+            </div>
+            
+            {batchProgress.completed && (
+              <div className="mt-2 text-sm">
+                <span className="text-green-600 font-medium">
+                  Upload completed! 
+                </span>
+                {batchProgress.totalFailed > 0 && (
+                  <span className="text-gray-600 ml-2">
+                    Check console for failed items details.
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
         {/* <Button
@@ -211,9 +285,16 @@ const ExcelUploadDialog = ({ openDialog, setOpenDialog,params}) => {
             bulkUploadMutation.isPending ? "pointer-events-none opacity-70" : ""
           } w-full transition cursor-pointer`}
           onClick={handleUploadBulk}
+          disabled={bulkUploadMutation.isPending}
         >
           {!bulkUploadMutation.isPending && <Upload size={18} />}{" "}
-          {bulkUploadMutation.isPending ? "Uploading..." : "Upload"}
+          {bulkUploadMutation.isPending 
+            ? (batchProgress 
+                ? `Processing Batch ${batchProgress.currentBatch}/${batchProgress.totalBatches}...` 
+                : "Uploading..."
+              )
+            : "Upload"
+          }
         </Button>
       </DialogContent>
     </Dialog>

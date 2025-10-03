@@ -16,6 +16,7 @@ import { getItem } from "@/utils/local_storage";
 import { updateProduct } from "../helpers/updateProduct";
 import { createProduct } from "../helpers/createProduct";
 import { fetchSubCategory } from "@/pages/sub_categories/helpers/fetchsub-cat";
+import { fetchBrand } from "@/pages/brands/helpers/fetchBrand";
 
 // ✅ Tag options
 const TAG_OPTIONS = [
@@ -48,6 +49,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     bannerPreview: null,
     tags: [],
     sub_category: "",
+    brand: "",
     variants: [
       {
         sku: "",
@@ -141,6 +143,16 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     queryFn: fetchSubCategory,
   });
 
+  const {
+    data: apiBrandsResponse,
+    isLoading: isBrandsLoading,
+    error: brandsError,
+  } = useQuery({
+    queryKey: ["brands"],
+    queryFn: () => fetchBrand({ params: {} }),
+    select: (data) => data?.response?.data,
+  });
+
   
   useEffect(() => {
     if (isEditMode && initialData) {
@@ -162,6 +174,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
         bannerPreview: initialData.banner_image || null,
         tags: Array.isArray(initialData.tags) ? initialData.tags : [],
         sub_category: initialData.sub_category || "",
+        brand: initialData.brand?._id || "",
         variants: Array.isArray(initialData.variants) && initialData.variants.length > 0
           ? initialData.variants.map(v => ({
               sku: v.sku || "",
@@ -277,6 +290,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     form.append("price", formData.price);
     form.append("discounted_price", formData.saleprice);
     form.append("sub_category", formData.sub_category);
+    form.append("brand", formData.brand);
     form.append("user_id", userId);
     form.append("created_by_admin", userId);
   
@@ -447,6 +461,32 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
           )}
           {subcategoriesError && (
             <p className="text-sm text-red-500">Failed to load subcategories</p>
+          )}
+        </div>
+
+        {/* Brand */}
+        <div className="space-y-2">
+          <Label>Brand</Label>
+          <select
+            name="brand"
+            onChange={handleChange}
+            value={formData.brand}
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          >
+            <option value="">Select Brand</option>
+            {Array.isArray(apiBrandsResponse?.brands) &&
+              apiBrandsResponse.brands.map((brand) => (
+                <option key={brand._id} value={brand._id}>
+                  {brand.name}
+                </option>
+              ))}
+          </select>
+
+          {isBrandsLoading && (
+            <p className="text-sm text-gray-500">Loading brands...</p>
+          )}
+          {brandsError && (
+            <p className="text-sm text-red-500">Failed to load brands</p>
           )}
         </div>
 

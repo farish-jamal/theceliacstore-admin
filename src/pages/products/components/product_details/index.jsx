@@ -131,7 +131,9 @@ const ProductDetails = () => {
   </div>
 )}           
  <div  />
-            {/* <Detail label="Brand" value={product.uploaded_by_brand} /> */}
+            {product.brand && (
+              <Detail label="Brand" value={product.brand.name} />
+            )}
             {/* <Detail
               label="Expiry Date"
               value={

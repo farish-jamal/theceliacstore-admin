@@ -195,7 +195,7 @@ function CustomTable({
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    onPageChange(page - 1);
+                    onPageChange(page);
                   }}
                   isActive={page === currentPage}
                 >
@@ -231,7 +231,7 @@ function CustomTable({
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                if (currentPage < totalPages) onPageChange(currentPage);
+                if (currentPage < totalPages) onPageChange(currentPage + 1);
               }}
               className={
                 currentPage === totalPages

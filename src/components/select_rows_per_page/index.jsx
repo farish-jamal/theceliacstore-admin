@@ -1,7 +1,7 @@
 import Typography from "../typography";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-const ROWS_OPTIONS = [25, 50, 75, 100];
+const ROWS_OPTIONS = [25, 50, 75, 100, 300, 500];
 
 const SelectRowsPerPage = ({ onRowsPerPageChange, rowsPerPage }) => {
   return (

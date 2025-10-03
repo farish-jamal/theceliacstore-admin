@@ -123,6 +123,11 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
       render: (value) => `₹${value?.$numberDecimal || value || ''}`,
     },
     {
+      key: "brand",
+      label: "Brand",
+      render: (value) => value?.name || "No Brand",
+    },
+    {
       key: "instock",
       label: "In Stock",
       render: (value) => (value ? "Yes" : "No"),
