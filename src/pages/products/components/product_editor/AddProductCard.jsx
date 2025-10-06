@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import Typography from "@/components/typography";
 import NavbarItem from "@/components/navbar/navbar_item";
 
@@ -50,6 +51,9 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     tags: [],
     sub_category: "",
     brand: "",
+    is_imported_picks: false,
+    is_bakery: false,
+    is_best_seller: false,
     variants: [
       {
         sku: "",
@@ -175,6 +179,9 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
         tags: Array.isArray(initialData.tags) ? initialData.tags : [],
         sub_category: initialData.sub_category || "",
         brand: initialData.brand?._id || "",
+        is_imported_picks: Boolean(initialData.is_imported_picks),
+        is_bakery: Boolean(initialData.is_bakery),
+        is_best_seller: Boolean(initialData.is_best_seller),
         variants: Array.isArray(initialData.variants) && initialData.variants.length > 0
           ? initialData.variants.map(v => ({
               sku: v.sku || "",
@@ -293,6 +300,9 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     form.append("brand", formData.brand);
     form.append("user_id", userId);
     form.append("created_by_admin", userId);
+    form.append("is_imported_picks", String(formData.is_imported_picks));
+    form.append("is_bakery", String(formData.is_bakery));
+    form.append("is_best_seller", String(formData.is_best_seller));
   
     // Tags
     formData.tags.forEach((tag) => form.append("tags", tag));
@@ -488,6 +498,49 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
           {brandsError && (
             <p className="text-sm text-red-500">Failed to load brands</p>
           )}
+        </div>
+
+        {/* Flags */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is_imported_picks"
+              checked={formData.is_imported_picks}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  is_imported_picks: Boolean(checked),
+                }))
+              }
+            />
+            <Label htmlFor="is_imported_picks">Imported Picks</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is_bakery"
+              checked={formData.is_bakery}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  is_bakery: Boolean(checked),
+                }))
+              }
+            />
+            <Label htmlFor="is_bakery">Bakery</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is_best_seller"
+              checked={formData.is_best_seller}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  is_best_seller: Boolean(checked),
+                }))
+              }
+            />
+            <Label htmlFor="is_best_seller">Best Seller</Label>
+          </div>
         </div>
 
         {/* Product Images */}
