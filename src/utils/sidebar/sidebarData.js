@@ -26,7 +26,8 @@ import {
   Package2,
   LayoutGridIcon,
   CreditCard,
-  Mail
+  Mail,
+  Truck
 } from "lucide-react";
 import { getItem } from "../local_storage";
 const userName = getItem("userName") || "Admin";
@@ -109,7 +110,14 @@ export const data = {
 
       
     },
-    
+    {
+      title: "Shipment Zones",
+      url: "/dashboard/shipment-zones",
+      icon: Truck,
+      isActive: true,
+      items: [],
+      roles: ["super_admin", "admin"],
+    },
     
     
   ],
