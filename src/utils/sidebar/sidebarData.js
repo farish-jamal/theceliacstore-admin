@@ -136,13 +136,13 @@ export const data = {
       icon: ContactIcon,
       roles: ["super_admin", "admin"],
     },
-    {
-      title: "Newsletter",
-      name: "Newsletter",
-      url: "/dashboard/newsletter",
-      icon: Mail,
-      roles: ["super_admin", "admin"],
-    }
+    // {
+    //   title: "Newsletter",
+    //   name: "Newsletter",
+    //   url: "/dashboard/newsletter",
+    //   icon: Mail,
+    //   roles: ["super_admin", "admin"],
+    // }
     // {
     //   title: "Info & Policy",
     //   name: "Info & Policy",
@@ -183,12 +183,12 @@ export const data = {
       icon: Package2,
       roles: ["super_admin","admin"],
     },
-    {
-      title: "Transactions",
-      name: "Transactions",
-      url: "/dashboard/transactions",
-      icon: CreditCard,
-      roles: ["super_admin"],
-    }
+    // {
+    //   title: "Transactions",
+    //   name: "Transactions",
+    //   url: "/dashboard/transactions",
+    //   icon: CreditCard,
+    //   roles: ["super_admin"],
+    // }
   ]
 };
