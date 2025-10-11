@@ -44,6 +44,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     price: "",
     saleprice: "",
     sku: "",
+    weight_in_grams: "",
     images: [],
     imagePreviews: [],
     bannerImage: null,
@@ -166,6 +167,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
         price: initialData.price || "",
         saleprice: initialData.discounted_price || "",
         sku: initialData.sku || "",
+        weight_in_grams: initialData.weight_in_grams || "",
         images: [],
         imagePreviews: Array.isArray(initialData.images)
           ? initialData.images.map((imgUrl) => ({
@@ -296,6 +298,7 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
     form.append("small_description", formData.description);
     form.append("price", formData.price);
     form.append("discounted_price", formData.saleprice);
+    form.append("weight_in_grams", formData.weight_in_grams);
     form.append("sub_category", formData.sub_category);
     form.append("brand", formData.brand);
     form.append("user_id", userId);
@@ -319,8 +322,12 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
       form.append("banner_image", formData.bannerImage);
     }
   
-    // ✅ Variants
-    formData.variants.forEach((variant, i) => {
+    // ✅ Variants - only send if there are meaningful variants
+    const validVariants = formData.variants.filter(variant => 
+      variant.sku.trim() || variant.name.trim() || variant.price || variant.discounted_price || variant.inventory
+    );
+    
+    validVariants.forEach((variant, i) => {
       form.append(`variants[${i}][sku]`, variant.sku);
       form.append(`variants[${i}][name]`, variant.name);
       form.append(`variants[${i}][price]`, variant.price);
@@ -385,6 +392,19 @@ const AddProductCard = ({ initialData = {}, isEditMode = false }) => {
               )}
             </Button>
           </div>
+        </div>
+
+        {/* Weight in Grams */}
+        <div className="space-y-2">
+          <Label>Weight (in grams)</Label>
+          <Input
+            type="number"
+            name="weight_in_grams"
+            value={formData.weight_in_grams}
+            onChange={handleChange}
+            placeholder="Product weight in grams"
+            min="0"
+          />
         </div>
 
         {/* Name */}
