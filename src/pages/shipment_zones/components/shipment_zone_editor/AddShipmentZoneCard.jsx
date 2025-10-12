@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import VirtualList from "rc-virtual-list";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { updateShipmentZone } from "../../helpers/updateShipmentZone";
 import { createShipmentZone } from "../../helpers/createShipmentZone";
 import { X, Plus } from "lucide-react";
+
 
 const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
   const navigate = useNavigate();
@@ -56,14 +58,12 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
   // Mutation: Create or Update
   const mutation = useMutation({
     mutationFn: async (form) => {
-      try {
+      
         const result = isEditMode
           ? await updateShipmentZone({ id: initialData._id, data: form })
           : await createShipmentZone(form);
         return result;
-      } catch (error) {
-        throw error;
-      }
+      
     },
 
     onSuccess: (data) => {
@@ -270,22 +270,53 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
                 Clear All
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-              {formData.pincodes.map((pincode, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                >
-                  <span>{pincode}</span>
-                  <button
-                    type="button"
-                    onClick={() => removePincode(index)}
-                    className="ml-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+            <div className="border border-gray-200 rounded-lg p-2">
+              {formData.pincodes.length <= 50 ? (
+                // Show regular flex layout for small lists (≤50 items)
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                  {formData.pincodes.map((pincode, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                    >
+                      <span>{pincode}</span>
+                      <button
+                        type="button"
+                        onClick={() => removePincode(index)}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                // Use virtual list for large lists (>50 items)
+                <div className="h-32">
+                  <VirtualList
+                    data={formData.pincodes}
+                    height={128}
+                    itemHeight={32}
+                    itemKey={(item, index) => `${item}-${index}`}
+                    style={{ outline: 'none' }}
+                  >
+                    {(pincode, index) => (
+                      <div key={`${pincode}-${index}`} className="px-1 py-0.5">
+                        <div className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                          <span>{pincode}</span>
+                          <button
+                            type="button"
+                            onClick={() => removePincode(index)}
+                            className="ml-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </VirtualList>
+                </div>
+              )}
             </div>
           </div>
         )}
