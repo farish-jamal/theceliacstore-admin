@@ -187,8 +187,9 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
       return;
     }
 
-    if (formData.pincodes.length === 0) {
-      toast.error("At least one pincode is required");
+    // Allow empty pincodes only if this is a default zone
+    if (formData.pincodes.length === 0 && !formData.is_default) {
+      toast.error("At least one pincode is required (or mark as default zone)");
       return;
     }
 
@@ -248,13 +249,18 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
         <Label>Pincodes</Label>
         <p className="text-sm text-gray-600">
           Enter single pincode or paste multiple pincodes (one per line) for bulk input
+          {formData.is_default && (
+            <span className="block mt-1 text-blue-600 font-medium">
+              Default zone: Can be left empty to serve as fallback for all unmatched pincodes
+            </span>
+          )}
         </p>
         <div className="space-y-2">
           <Textarea
             value={formData.newPincode}
             onChange={(e) => setFormData(prev => ({ ...prev, newPincode: e.target.value }))}
             onKeyDown={handlePincodeKeyPress}
-            placeholder="795114&#10;795005&#10;795008&#10;... or single pincode"
+            placeholder={formData.is_default ? "Optional: Add specific pincodes, or leave empty for default fallback&#10;795114&#10;795005&#10;795008&#10;..." : "795114&#10;795005&#10;795008&#10;... or single pincode"}
             rows={4}
             className="resize-none"
           />
