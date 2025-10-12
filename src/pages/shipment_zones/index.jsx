@@ -52,7 +52,7 @@ const ShipmentZones = () => {
 
       <div className="px-4">
         <CustomActionMenu
-          title="shipment zones"
+          title="Shipment Zone"
           total={shipmentZoneLength}
           onAdd={onAdd}
           searchText={searchText}
