@@ -26,6 +26,8 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
     price: 0,
     price_per_unit: 0,
     fixed_amount: 0,
+    flat_rate_base: 0,
+    min_weight_grams: 1000,
     is_default: false,
     is_active: true,
     description: "",
@@ -45,6 +47,8 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
         price: initialData.price || 0,
         price_per_unit: initialData.price_per_unit || initialData.price || 0, // Use price if price_per_unit is not available
         fixed_amount: initialData.fixed_amount || 0,
+        flat_rate_base: initialData.flat_rate_base || 0,
+        min_weight_grams: initialData.min_weight_grams || 1000,
         is_default: initialData.is_default || false,
         is_active: initialData.is_active !== undefined ? initialData.is_active : true,
         description: initialData.description || "",
@@ -209,6 +213,11 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
       payload.price = Number(formData.price_per_unit); // Note: API expects "price" not "price_per_unit"
     } else if (formData.pricing_type === "fixed_rate") {
       payload.fixed_amount = Number(formData.fixed_amount);
+    } else if (formData.pricing_type === "flat_rate_plus_dynamic") {
+      payload.weight_unit_grams = Number(formData.weight_unit_grams);
+      payload.price = Number(formData.price_per_unit);
+      payload.flat_rate_base = Number(formData.flat_rate_base);
+      payload.min_weight_grams = Number(formData.min_weight_grams);
     }
     // For "free" pricing type, no additional fields needed
 
@@ -334,6 +343,7 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
               {formData.pricing_type === "free" && "Free Shipping"}
               {formData.pricing_type === "flat_rate" && "Flat Rate (per weight unit)"}
               {formData.pricing_type === "fixed_rate" && "Fixed Rate"}
+              {formData.pricing_type === "flat_rate_plus_dynamic" && "Flat Rate + Dynamic Pricing"}
               {!formData.pricing_type && "Select pricing type"}
             </SelectValue>
           </SelectTrigger>
@@ -341,6 +351,7 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
             <SelectItem value="free">Free Shipping</SelectItem>
             <SelectItem value="flat_rate">Flat Rate (per weight unit)</SelectItem>
             <SelectItem value="fixed_rate">Fixed Rate</SelectItem>
+            <SelectItem value="flat_rate_plus_dynamic">Flat Rate + Dynamic Pricing</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -386,6 +397,57 @@ const AddShipmentZoneCard = ({ initialData = {}, isEditMode = false }) => {
             step="0.01"
           />
         </div>
+      )}
+
+      {formData.pricing_type === "flat_rate_plus_dynamic" && (
+        <>
+          <div className="space-y-2">
+            <Label>Weight Unit (grams)</Label>
+            <Input
+              type="number"
+              name="weight_unit_grams"
+              value={formData.weight_unit_grams}
+              onChange={handleChange}
+              placeholder="Enter weight unit in grams"
+              min="1"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Price (₹)</Label>
+            <Input
+              type="number"
+              name="price_per_unit"
+              value={formData.price_per_unit}
+              onChange={handleChange}
+              placeholder="Enter price"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Flat Rate Base (₹)</Label>
+            <Input
+              type="number"
+              name="flat_rate_base"
+              value={formData.flat_rate_base}
+              onChange={handleChange}
+              placeholder="Enter flat rate base amount"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Minimum Weight (grams)</Label>
+            <Input
+              type="number"
+              name="min_weight_grams"
+              value={formData.min_weight_grams}
+              onChange={handleChange}
+              placeholder="Enter minimum weight in grams"
+              min="1"
+            />
+          </div>
+        </>
       )}
 
       {formData.pricing_type === "free" && (
