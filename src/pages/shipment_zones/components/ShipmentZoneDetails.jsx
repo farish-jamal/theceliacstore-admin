@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import VirtualList from "rc-virtual-list";
 import NavbarItem from "@/components/navbar/navbar_item";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -145,12 +146,28 @@ const ShipmentZoneDetails = () => {
 
               <div>
                 <h4 className="font-medium text-sm text-gray-600 mb-1">Pincodes ({zoneData.pincodes?.length || 0})</h4>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {zoneData.pincodes?.map((pincode, index) => (
-                    <Badge key={index} variant="outline">
-                      {pincode}
-                    </Badge>
-                  ))}
+                <div className="mt-2">
+                  {zoneData.pincodes && zoneData.pincodes.length > 0 ? (
+                    <div className="border rounded-md p-2 bg-gray-50">
+                      <VirtualList
+                        data={zoneData.pincodes}
+                        height={200}
+                        itemHeight={32}
+                        itemKey={(item, index) => `${item}-${index}`}
+                        style={{ outline: 'none' }}
+                      >
+                        {(pincode, index) => (
+                          <div key={`${pincode}-${index}`} className="px-2 py-1">
+                            <Badge variant="outline" className="inline-block">
+                              {pincode}
+                            </Badge>
+                          </div>
+                        )}
+                      </VirtualList>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No pincodes available</p>
+                  )}
                 </div>
               </div>
 
