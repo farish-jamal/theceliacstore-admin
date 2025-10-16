@@ -35,7 +35,7 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     error: productsError,
   } = useQuery({
     queryKey: ["products"],
-    queryFn: () => fetchProducts({ params: {} }), 
+    queryFn: () => fetchProducts({ params: { page: 1, per_page: 1000 } }), 
   });
 
   useEffect(() => {
@@ -187,6 +187,16 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     return product?.name || 'Unknown Product';
   };
 
+  const getProductPrice = (productId) => {
+    const product = apiProductsResponse?.data?.find(p => p._id === productId);
+    if (!product) return 0;
+    const normalize = (val) => (val && typeof val === 'object' && '$numberDecimal' in val) ? val.$numberDecimal : val;
+    const price = normalize(product.discounted_price ?? product.price);
+    return price ?? 0;
+  };
+
+  
+
   return (
     <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border">
       <div className="space-y-2">
@@ -233,6 +243,10 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
               <div key={productItem.product} className="flex items-center gap-3 p-3 border rounded-lg">
                 <div className="flex-1">
                   <span className="font-medium">{getProductName(productItem.product)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`price-${productItem.product}`} className="text-sm">Price:</Label>
+                  <p className="text-sm">₹{getProductPrice(productItem.product)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Label htmlFor={`qty-${productItem.product}`} className="text-sm">Qty:</Label>
