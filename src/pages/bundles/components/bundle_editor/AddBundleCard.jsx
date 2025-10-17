@@ -27,6 +27,7 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     products: [], // Array of {product: id, quantity: number}
     images: [],
     imagePreviews: [],
+    is_active: true,
   });
 
   const {
@@ -59,6 +60,7 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
               isFromServer: true,
             }))
           : [],
+        is_active: typeof initialData.is_active === 'boolean' ? initialData.is_active : true,
       });
     }
   }, [initialData, isEditMode]);
@@ -176,6 +178,7 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
     });
 
     if (isEditMode) {
+      form.append("is_active", String(formData.is_active));
       editMutation.mutate({ id: initialData._id, payload: form });
     } else {
       createMutation.mutate({ formData: form });
@@ -293,6 +296,21 @@ const AddBundleCard = ({ initialData = {}, isEditMode = false }) => {
           onChange={handleChange}
         />
       </div>
+
+      {isEditMode && (
+        <div className="space-y-2">
+          <Label htmlFor="is_active">Active</Label>
+          <div className="flex items-center gap-2">
+            <input
+              id="is_active"
+              type="checkbox"
+              checked={formData.is_active}
+              onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
+            />
+            <span className="text-sm text-gray-600">activate/deactivate this bundle</span>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>Images</Label>
