@@ -153,9 +153,15 @@ const OrderDetails = () => {
     setHasChanges(true);
   };
 
-  // Remove item from order
+  // Remove item from order (set quantity to 0)
   const removeItem = (itemIndex) => {
-    setOrderItems(prev => prev.filter((_, index) => index !== itemIndex));
+    setOrderItems(prev => 
+      prev.map((item, index) => 
+        index === itemIndex 
+          ? { ...item, quantity: 0 }
+          : item
+      )
+    );
     setHasChanges(true);
   };
 
@@ -303,6 +309,9 @@ const OrderDetails = () => {
 
         // Check current items to categorize them
         orderItems.forEach(item => {
+          // Skip items with quantity 0 (removed items)
+          if (item.quantity === 0) return;
+
           // Check if this item existed in the original order
           const wasInOriginal = originalItems.some(originalItem => {
             if (item.product?._id && originalItem.product?._id) {
@@ -340,6 +349,35 @@ const OrderDetails = () => {
               newBundles.push({
                 bundleId: item.bundle._id,
                 quantity: item.quantity,
+              });
+            }
+          }
+        });
+
+        // Handle removed items (items that existed in original but have quantity 0 in current)
+        originalItems.forEach(originalItem => {
+          const currentItem = orderItems.find(currentItem => {
+            if (originalItem.product?._id && currentItem.product?._id) {
+              return originalItem.product._id === currentItem.product._id;
+            }
+            if (originalItem.bundle?._id && currentItem.bundle?._id) {
+              return originalItem.bundle._id === currentItem.bundle._id;
+            }
+            return false;
+          });
+
+          // If item exists in current but has quantity 0, it was removed
+          if (currentItem && currentItem.quantity === 0) {
+            if (originalItem.product?._id) {
+              existingProducts.push({
+                productId: originalItem.product._id,
+                newQuantity: 0,
+              });
+            }
+            if (originalItem.bundle?._id) {
+              existingBundles.push({
+                bundleId: originalItem.bundle._id,
+                newQuantity: 0,
               });
             }
           }
@@ -390,13 +428,15 @@ const OrderDetails = () => {
 
   // Calculate totals
   const calculateTotal = () => {
-    const itemsTotal = orderItems.reduce((total, item) => {
-      // Use discounted_total_amount if available, otherwise calculate from product/bundle price and quantity
-      const itemTotal = item.discounted_total_amount || 
-                       ((item.product?.discounted_price || item.product?.price || 
-                         item.bundle?.discounted_price || item.bundle?.price || 0) * (item.quantity || 0));
-      return total + itemTotal;
-    }, 0);
+    const itemsTotal = orderItems
+      .filter(item => item.quantity > 0) // Only include items with quantity > 0
+      .reduce((total, item) => {
+        // Use discounted_total_amount if available, otherwise calculate from product/bundle price and quantity
+        const itemTotal = item.discounted_total_amount || 
+                         ((item.product?.discounted_price || item.product?.price || 
+                           item.bundle?.discounted_price || item.bundle?.price || 0) * (item.quantity || 0));
+        return total + itemTotal;
+      }, 0);
     
     return itemsTotal + shippingCost;
   };
@@ -970,72 +1010,74 @@ const OrderDetails = () => {
                 </Typography>
               </div>
             ) : (
-              orderItems.map((item, index) => {
-                const isProduct = item.type === "product" || item.product;
-                const isBundle = item.type === "bundle" || item.bundle;
-                
-                const itemName = isProduct ? (item.product?.name || 'Unknown Product') : 
-                               isBundle ? (item.bundle?.name || 'Unknown Bundle') : 'Unknown Item';
-                
-                const itemPrice = isProduct ? (item.product?.discounted_price || item.product?.price || 0) :
-                               isBundle ? (item.bundle?.discounted_price || item.bundle?.price || 0) : 0;
-                
-                return (
-                  <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Typography variant="p" className="font-medium">{itemName}</Typography>
-                        <Badge variant={isProduct ? "default" : "secondary"}>
-                          {isProduct ? "Product" : "Bundle"}
-                        </Badge>
+              orderItems
+                .filter(item => item.quantity > 0) // Only show items with quantity > 0
+                .map((item, index) => {
+                  const isProduct = item.type === "product" || item.product;
+                  const isBundle = item.type === "bundle" || item.bundle;
+                  
+                  const itemName = isProduct ? (item.product?.name || 'Unknown Product') : 
+                                 isBundle ? (item.bundle?.name || 'Unknown Bundle') : 'Unknown Item';
+                  
+                  const itemPrice = isProduct ? (item.product?.discounted_price || item.product?.price || 0) :
+                                 isBundle ? (item.bundle?.discounted_price || item.bundle?.price || 0) : 0;
+                  
+                  return (
+                    <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Typography variant="p" className="font-medium">{itemName}</Typography>
+                          <Badge variant={isProduct ? "default" : "secondary"}>
+                            {isProduct ? "Product" : "Bundle"}
+                          </Badge>
+                        </div>
+                        <Typography variant="small" className="text-muted-foreground">
+                          {isProduct && item.product?.sku ? `SKU: ${item.product.sku} • ` : ''}₹{itemPrice.toFixed(2)} each
+                        </Typography>
                       </div>
-                      <Typography variant="small" className="text-muted-foreground">
-                        {isProduct && item.product?.sku ? `SKU: ${item.product.sku} • ` : ''}₹{itemPrice.toFixed(2)} each
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateItemQuantity(index, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
+                          className="w-20 text-center"
+                          min="1"
+                        />
+                        
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateItemQuantity(index, item.quantity + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <Typography variant="p" className="font-medium w-24 text-right">
+                        ₹{(itemPrice * item.quantity).toFixed(2)}
                       </Typography>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateItemQuantity(index, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
-                        className="w-20 text-center"
-                        min="1"
-                      />
                       
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        onClick={() => updateItemQuantity(index, item.quantity + 1)}
+                        onClick={() => removeItem(index)}
+                        className="text-red-500 hover:text-red-700"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    
-                    <Typography variant="p" className="font-medium w-24 text-right">
-                      ₹{(itemPrice * item.quantity).toFixed(2)}
-                    </Typography>
-                    
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                );
-              })
+                  );
+                })
             )}
           </div>
 
