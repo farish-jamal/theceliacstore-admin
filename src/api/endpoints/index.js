@@ -17,6 +17,7 @@ export const endpoints = {
   contact: "api/contact-us",
   //order
   order: "api/order",
+  generate_payment_link: "api/order/generate-payment-link",
   // bundles
   bundle: "api/bundles",
   //users

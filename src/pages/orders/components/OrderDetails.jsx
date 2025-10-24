@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ArrowLeft, Plus, Minus, Save, Trash2, Mail, CreditCard, Edit, Package, Truck, DollarSign, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Save, Trash2, Mail, CreditCard, Edit, Package, Truck, DollarSign, Eye, EyeOff, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,20 @@ import Typography from "@/components/typography";
 
 import { fetchOrderById } from "../helpers/fetchOrderById";
 import { updateOrder } from "../helpers/updateOrder";
+import { generatePaymentLink } from "../helpers/generatePaymentLink";
 import { fetchProducts } from "@/pages/products/components/helpers/fetchProducts";
 import { fetchBundle } from "@/pages/bundles/helpers/fetchBundle";
 
 const OrderDetails = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Helper function to refetch order data after any API call
+  // Use this function in the onSuccess callback of any mutation that modifies order data
+  const refetchOrderData = () => {
+    queryClient.invalidateQueries(["order", orderId]);
+  };
 
   // State for order items editing
   const [orderItems, setOrderItems] = useState([]);
@@ -83,8 +91,8 @@ const OrderDetails = () => {
       toast.success("Order updated successfully.");
       setHasChanges(false);
       setStatusChanged(false);
-      // Optionally refetch the order data to get the latest state
-      // queryClient.invalidateQueries(["order", orderId]);
+      // Refetch the order data to get the latest state
+      refetchOrderData();
     },
     onError: (error) => {
       console.error("Update order error:", error);
@@ -92,39 +100,20 @@ const OrderDetails = () => {
     },
   });
 
-  // Send order details mutation (simulated)
-  const { mutate: sendDetails } = useMutation({
-    mutationFn: () => {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 500);
-      });
-    },
+  // Generate payment link mutation
+  const { mutate: generatePaymentLinkMutation, isLoading: isGeneratingPaymentLink } = useMutation({
+    mutationFn: ({ orderId, amount }) => generatePaymentLink({ orderId, amount }),
     onSuccess: () => {
-      toast.success("Order details sent to customer.");
+      toast.success("Payment link generated successfully!");
+      // Refetch the order data to get the updated payment link
+      refetchOrderData();
     },
-    onError: () => {
-      toast.error("Failed to send order details.");
+    onError: (error) => {
+      console.error("Generate payment link error:", error);
+      toast.error("Failed to generate payment link. Please try again.");
     },
   });
 
-  // Send payment link mutation (simulated)
-  const { mutate: sendPayment } = useMutation({
-    mutationFn: () => {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 500);
-      });
-    },
-    onSuccess: () => {
-      toast.success("Payment link sent to customer.");
-    },
-    onError: () => {
-      toast.error("Failed to send payment link.");
-    },
-  });
 
   // Initialize order items and status when order data loads
   useEffect(() => {
@@ -416,14 +405,29 @@ const OrderDetails = () => {
     }
   };
 
-  // Send order details to customer
-  const handleSendOrderDetails = () => {
-    sendDetails({ orderId });
+
+  // Copy payment link to clipboard
+  const handleCopyPaymentLink = async () => {
+    if (order?.paymentLink) {
+      try {
+        await navigator.clipboard.writeText(order.paymentLink);
+        toast.success("Payment link copied to clipboard!");
+      } catch (error) {
+        console.error("Failed to copy payment link:", error);
+        toast.error("Failed to copy payment link");
+      }
+    } else {
+      toast.error("No payment link available");
+    }
   };
 
-  // Send payment link to customer
-  const handleSendPaymentLink = () => {
-    sendPayment({ orderId });
+  // Generate payment link
+  const handleGeneratePaymentLink = () => {
+    const totalAmount = calculateTotal();
+    generatePaymentLinkMutation({ 
+      orderId, 
+      amount: totalAmount 
+    });
   };
 
   // Calculate totals
@@ -461,8 +465,8 @@ const OrderDetails = () => {
         </div>
 
         {/* Cards Grid Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-6 w-32" />
@@ -578,32 +582,22 @@ const OrderDetails = () => {
             )}
           </div>
 
-          {/* Communication Buttons */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSendOrderDetails}
-              className="flex items-center gap-2"
-            >
-              <Mail className="h-4 w-4" />
-              Send Details
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSendPaymentLink}
-              className="flex items-center gap-2"
-            >
-              <CreditCard className="h-4 w-4" />
-              Payment Link
-            </Button>
-          </div>
+          {/* Generate Payment Link Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGeneratePaymentLink}
+            disabled={isGeneratingPaymentLink}
+            className="flex items-center gap-2"
+          >
+            <CreditCard className="h-4 w-4" />
+            {isGeneratingPaymentLink ? "Generating..." : "Generate Payment Link"}
+          </Button>
         </div>
       </div>
 
       {/* Order Information Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Customer Information */}
         <Card>
           <CardHeader>
@@ -676,6 +670,45 @@ const OrderDetails = () => {
               <Typography variant="p" className="font-medium">{order.address?.address || 'N/A'}</Typography>
               <Typography variant="p">{order.address?.city || 'N/A'}, {order.address?.state || 'N/A'}</Typography>
               <Typography variant="p">{order.address?.pincode || 'N/A'}</Typography>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Payment Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Typography variant="small" className="text-muted-foreground">Payment Link ID</Typography>
+              <Typography variant="p" className="font-medium font-mono text-sm">
+                {order.paymentLinkId || 'N/A'}
+              </Typography>
+            </div>
+            <div>
+              <Typography variant="small" className="text-muted-foreground">Payment Link</Typography>
+              {order.paymentLink ? (
+                <div className="space-y-2">
+                  <Typography variant="p" className="font-mono text-sm break-all">
+                    {order.paymentLink}
+                  </Typography>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyPaymentLink}
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy Link
+                  </Button>
+                </div>
+              ) : (
+                <Typography variant="p" className="text-muted-foreground">No payment link available</Typography>
+              )}
             </div>
           </CardContent>
         </Card>
