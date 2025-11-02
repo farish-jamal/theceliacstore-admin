@@ -51,7 +51,7 @@ const SubCategory = ({ setCategoryLength, params, setParams }) => {
       mutationFn: deleteCategory,
       onSuccess: () => {
         toast.success("Sub-Category deleted successfully.");
-        queryClient.invalidateQueries(["categorys"]);
+        queryClient.invalidateQueries(["subcategory"]);
         onCloseDialog();
       },
       onError: (error) => {
@@ -63,8 +63,15 @@ const SubCategory = ({ setCategoryLength, params, setParams }) => {
   const onDeleteClick = (id) => {
     deleteProuductsMutation(id);
   };
-  const categorys = apicategorysResponse?.data|| [];
-  const total = apicategorysResponse?.data?.total || 0;
+  
+  // Extract data - matching CategoryTable pattern which uses .data.categories
+  // Try both possible structures to handle API response variations
+  const categorys = apicategorysResponse?.data?.subCategories || 
+                    apicategorysResponse?.subCategories || 
+                    [];
+  const total = apicategorysResponse?.data?.total || 
+                apicategorysResponse?.total || 
+                0;
 
   const onNavigateToEdit = (subcategory) => {
     navigate(`/dashboard/subcategory/edit/${subcategory._id}`, {
@@ -81,8 +88,11 @@ const SubCategory = ({ setCategoryLength, params, setParams }) => {
   useEffect(() => {
     setCategoryLength(categorys?.length);
     console.log("Fetched categorys:", categorys);
-    console.log("API response:", apicategorysResponse);
-  }, [categorys, setCategoryLength]);
+    console.log("Fetched categorys length:", categorys?.length);
+    console.log("Full API response:", apicategorysResponse);
+    console.log("apicategorysResponse?.subCategories:", apicategorysResponse?.subCategories);
+    console.log("apicategorysResponse?.data?.subCategories:", apicategorysResponse?.data?.subCategories);
+  }, [categorys, setCategoryLength, apicategorysResponse]);
 
   const perPage = params.per_page;
   const totalPages = Math.ceil(total / perPage);

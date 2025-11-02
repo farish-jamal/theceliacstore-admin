@@ -4,7 +4,6 @@ import { useDebounce } from "@uidotdev/usehooks";
 import CustomActionMenu from "@/components/custom_action";
 import NavbarItem from "@/components/navbar/navbar_item";
 import { DateRangePicker } from "@/components/date_filter";
-import CategoryTable from "./components/SubCategoryTable";
 import ExportCategoryDialog from "./components/ExportCategoryDialog";
 import SubCategory from "./components/SubCategoryTable";
 
