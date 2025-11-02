@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { fetchOrders } from "../helpers/fetchOrders";
 import { updateOrderStatus } from "../helpers/updateOrderStatus";
+import { bulkUpdateOrderStatus } from "../helpers/bulkUpdateOrderStatus";
 
 const ORDER_STATUSES = [
   "pending",
@@ -54,6 +55,9 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [newStatus, setNewStatus] = useState("");
+  const [selectedRowIds, setSelectedRowIds] = useState([]);
+  const [openBulkStatusDialog, setOpenBulkStatusDialog] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState("");
 
   const { mutate: updateOrderStatusMutation, isLoading: isUpdating } =
     useMutation({
@@ -68,6 +72,23 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       onError: (error) => {
         console.error(error);
         toast.error("Failed to update order status.");
+      },
+    });
+
+  const { mutate: bulkUpdateOrderStatusMutation, isLoading: isBulkUpdating } =
+    useMutation({
+      mutationFn: ({ orderIds, status }) => {
+        return bulkUpdateOrderStatus({ orderIds, status });
+      },
+      onSuccess: (_, variables) => {
+        toast.success(`Successfully updated ${variables.orderIds.length} order(s).`);
+        queryClient.invalidateQueries(["orders"]);
+        setOpenBulkStatusDialog(false);
+        setSelectedRowIds([]);
+      },
+      onError: (error) => {
+        console.error(error);
+        toast.error("Failed to update order statuses.");
       },
     });
 
@@ -113,6 +134,20 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
           </Typography>
           <Typography variant="small" className="text-gray-500">
             {row.address?.mobile || row.customer?.email || 'No contact info'}
+          </Typography>
+        </div>
+      ),
+    },
+    {
+      key: "shippingAddress",
+      label: "Shipping Address",
+      render: (_, row) => (
+        <div className="flex flex-col gap-1">
+          <Typography variant="p" className="text-wrap max-w-xs">
+            {row.address?.address || 'N/A'}
+          </Typography>
+          <Typography variant="small" className="text-gray-500">
+            {row.address?.city || 'N/A'}, {row.address?.state || 'N/A'} - {row.address?.pincode || 'N/A'}
           </Typography>
         </div>
       ),
@@ -245,8 +280,43 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
   const currentPage = showAllOnSinglePage ? 1 : params.page;
   const totalPages = showAllOnSinglePage ? 1 : Math.ceil(orderTotal / params.per_page);
 
+  const handleBulkStatusUpdate = () => {
+    if (selectedRowIds.length === 0) {
+      toast.error("Please select at least one order.");
+      return;
+    }
+    bulkUpdateOrderStatusMutation({
+      orderIds: selectedRowIds,
+      status: bulkStatus,
+    });
+  };
+
   return (
     <>
+      <div className="mb-4">
+        {selectedRowIds.length > 0 && (
+          <div className="flex items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <Typography variant="p" className="font-medium text-blue-900">
+              {selectedRowIds.length} order(s) selected
+            </Typography>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedRowIds([])}
+              >
+                Clear Selection
+              </Button>
+              <Button
+                onClick={() => setOpenBulkStatusDialog(true)}
+                disabled={selectedRowIds.length === 0}
+              >
+                Update Status
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
       <CustomTable
         columns={columns}
         data={orders || []}
@@ -258,7 +328,11 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
         onPageChange={showAllOnSinglePage ? () => {} : onPageChange}
         hidePagination={showAllOnSinglePage}
         emptyStateMessage="No orders found matching your criteria. Try adjusting your filters or search terms."
+        enableRowSelection={true}
+        onRowSelectionChange={setSelectedRowIds}
       />
+      
+      {/* Single Order Status Update Dialog */}
       <Dialog open={openStatusDialog} onOpenChange={setOpenStatusDialog}>
         <DialogContent>
           <DialogHeader>
@@ -290,6 +364,44 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
               disabled={isUpdating}
             >
               {isUpdating ? "Updating..." : "Update Status"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Status Update Dialog */}
+      <Dialog open={openBulkStatusDialog} onOpenChange={setOpenBulkStatusDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Update Order Status</DialogTitle>
+          </DialogHeader>
+          <Typography variant="p" className="font-medium">
+            Update {selectedRowIds.length} order(s) to:
+          </Typography>
+          <Select value={bulkStatus} onValueChange={setBulkStatus}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDER_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status.toUpperCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setOpenBulkStatusDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkStatusUpdate}
+              disabled={isBulkUpdating || !bulkStatus}
+            >
+              {isBulkUpdating ? "Updating..." : "Update Status"}
             </Button>
           </DialogFooter>
         </DialogContent>

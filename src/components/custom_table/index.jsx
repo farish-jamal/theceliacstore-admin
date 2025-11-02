@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -28,6 +28,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "../ui/pagination";
+import { Checkbox } from "../ui/checkbox";
 
 function CustomTable({
   columns: rawColumns,
@@ -39,11 +40,17 @@ function CustomTable({
   perPage = 10,
   onPageChange,
   emptyStateMessage = "No records available.",
+  enableRowSelection = false,
+  selectedRows = [],
+  onRowSelectionChange,
+  getRowId,
+  hidePagination = false,
 }) {
   const [sorting, setSorting] = useState([]);
+  const [rowSelection, setRowSelection] = useState({});
 
   const columns = useMemo(() => {
-    return rawColumns.map((col) => ({
+    const baseColumns = rawColumns.map((col) => ({
       id: col.key,
       accessorKey: col.key,
       header: () => <Typography>{col.label}</Typography>,
@@ -54,24 +61,64 @@ function CustomTable({
           <Typography>{info.getValue()}</Typography>
         ),
     }));
-  }, [rawColumns]);
+
+    if (enableRowSelection) {
+      return [
+        {
+          id: "select",
+          header: ({ table }) => (
+            <Checkbox
+              checked={table.getIsAllPageRowsSelected()}
+              onCheckedChange={(value) => {
+                table.toggleAllPageRowsSelected(!!value);
+              }}
+              aria-label="Select all"
+            />
+          ),
+          cell: ({ row }) => (
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => {
+                row.toggleSelected(!!value);
+              }}
+              aria-label="Select row"
+            />
+          ),
+        },
+        ...baseColumns,
+      ];
+    }
+    return baseColumns;
+  }, [rawColumns, enableRowSelection]);
 
   const table = useReactTable({
     data,
     columns,
+    getRowId: getRowId || ((row, index) => row._id || `${index}`),
     state: {
       sorting,
       pagination: {
         pageIndex: currentPage - 1,
         pageSize: perPage,
       },
+      rowSelection,
     },
     manualPagination: true,
     onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: enableRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     // getPaginationRowModel: getPaginationRowModel(),
   });
+
+  // Notify parent when row selection changes
+  useEffect(() => {
+    if (onRowSelectionChange && enableRowSelection) {
+      const selectedRowIds = Object.keys(rowSelection);
+      onRowSelectionChange(selectedRowIds);
+    }
+  }, [rowSelection, onRowSelectionChange, enableRowSelection]);
 
   if (isLoading) {
     return (
@@ -143,8 +190,9 @@ function CustomTable({
         </TableBody>
       </Table>
 
-      <Pagination>
-        <PaginationContent>
+      {!hidePagination && (
+        <Pagination>
+          <PaginationContent>
           {/* Previous Button */}
           <PaginationItem>
             <PaginationPrevious
@@ -242,6 +290,7 @@ function CustomTable({
           </PaginationItem>
         </PaginationContent>
       </Pagination>
+      )}
     </Card>
   );
 }
