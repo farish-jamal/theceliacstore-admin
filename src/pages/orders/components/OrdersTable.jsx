@@ -35,13 +35,19 @@ const ORDER_STATUSES = [
   "cancelled",
 ];
 
-const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage = false }) => {
+const OrdersTable = ({
+  setOrdersLength,
+  params,
+  setParams,
+  showAllOnSinglePage = false,
+}) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  const queryParams = showAllOnSinglePage 
-    ? { ...params, per_page: 50, page: 1 }
-    : params;
+  const perPage = 10;
+  const queryParams = {
+    ...params,
+    per_page: perPage,
+  };
 
   const {
     data: apiOrdersResponse,
@@ -81,7 +87,9 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
         return bulkUpdateOrderStatus({ orderIds, status });
       },
       onSuccess: (_, variables) => {
-        toast.success(`Successfully updated ${variables.orderIds.length} order(s).`);
+        toast.success(
+          `Successfully updated ${variables.orderIds.length} order(s).`
+        );
         queryClient.invalidateQueries(["orders"]);
         setOpenBulkStatusDialog(false);
         setSelectedRowIds([]);
@@ -97,7 +105,7 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       ? apiOrdersResponse.response.data.data
       : [];
   }, [apiOrdersResponse]);
-  
+
   const orderTotal = apiOrdersResponse?.response?.data?.total || 0;
   const isLoading = apiLoading;
   const error = apiError;
@@ -113,16 +121,19 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
   };
 
   const columns = [
-    { 
-      key: "sr_no", 
-      label: "Order ID", 
+    {
+      key: "sr_no",
+      label: "Order ID",
       render: (_, row) => (
         <div className="flex flex-col gap-1">
-          <Typography variant="p" className="font-mono font-medium text-blue-600">
+          <Typography
+            variant="p"
+            className="font-mono font-medium text-blue-600"
+          >
             {row?._id}
           </Typography>
         </div>
-      )
+      ),
     },
     {
       key: "customer",
@@ -130,10 +141,10 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       render: (_, row) => (
         <div className="flex flex-col gap-1">
           <Typography variant="p" className="font-medium">
-            {row.address?.name || row.customer?.name || 'Unknown Customer'}
+            {row.address?.name || row.customer?.name || "Unknown Customer"}
           </Typography>
           <Typography variant="small" className="text-gray-500">
-            {row.address?.mobile || row.customer?.email || 'No contact info'}
+            {row.address?.mobile || row.customer?.email || "No contact info"}
           </Typography>
         </div>
       ),
@@ -144,10 +155,11 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       render: (_, row) => (
         <div className="flex flex-col gap-1">
           <Typography variant="p" className="text-wrap max-w-xs">
-            {row.address?.address || 'N/A'}
+            {row.address?.address || "N/A"}
           </Typography>
           <Typography variant="small" className="text-gray-500">
-            {row.address?.city || 'N/A'}, {row.address?.state || 'N/A'} - {row.address?.pincode || 'N/A'}
+            {row.address?.city || "N/A"}, {row.address?.state || "N/A"} -{" "}
+            {row.address?.pincode || "N/A"}
           </Typography>
         </div>
       ),
@@ -156,23 +168,26 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       key: "items",
       label: "Items",
       render: (items) => {
-        const itemList = items?.map((item) => { 
-          const isBundle = item.type === 'bundle';
-          const isProduct = item.type === 'product' || !item.type;
-          
-          let itemData;
-          if (isBundle) {
-            itemData = item.bundle;
-          } else if (isProduct) {
-            itemData = item.product;
-          }
-          
-          const itemName = itemData?.name || 'Unknown Item';
-          const quantity = item.quantity || 0;
-          
-          return `${itemName} x${quantity}`;
-        }).join(', ') || 'No items';
-        
+        const itemList =
+          items
+            ?.map((item) => {
+              const isBundle = item.type === "bundle";
+              const isProduct = item.type === "product" || !item.type;
+
+              let itemData;
+              if (isBundle) {
+                itemData = item.bundle;
+              } else if (isProduct) {
+                itemData = item.product;
+              }
+
+              const itemName = itemData?.name || "Unknown Item";
+              const quantity = item.quantity || 0;
+
+              return `${itemName} x${quantity}`;
+            })
+            .join(", ") || "No items";
+
         return (
           <div className="flex flex-col gap-1">
             <Typography variant="p" className="text-wrap max-w-xs">
@@ -215,18 +230,23 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       render: (totalAmount, row) => {
         const discountedAmount = row?.discountedTotalAmount;
         const originalAmount = row?.totalAmount || totalAmount || 0;
-        const finalAmount = discountedAmount !== undefined ? discountedAmount : originalAmount;
-        
+        const finalAmount =
+          discountedAmount !== undefined ? discountedAmount : originalAmount;
+
         return (
           <div className="flex flex-col gap-1">
             <Typography variant="p" className="font-semibold text-green-600">
               ₹{finalAmount.toFixed(2)}
             </Typography>
-            {discountedAmount !== undefined && originalAmount !== discountedAmount && (
-              <Typography variant="small" className="text-gray-500 line-through">
-                ₹{originalAmount.toFixed(2)}
-              </Typography>
-            )}
+            {discountedAmount !== undefined &&
+              originalAmount !== discountedAmount && (
+                <Typography
+                  variant="small"
+                  className="text-gray-500 line-through"
+                >
+                  ₹{originalAmount.toFixed(2)}
+                </Typography>
+              )}
           </div>
         );
       },
@@ -276,9 +296,8 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
     }));
   };
 
-  const perPage = showAllOnSinglePage ? orderTotal : params.per_page;
-  const currentPage = showAllOnSinglePage ? 1 : params.page;
-  const totalPages = showAllOnSinglePage ? 1 : Math.ceil(orderTotal / params.per_page);
+  const currentPage = (params.page || 1) - 1;
+  const totalPages = Math.ceil(orderTotal / perPage);
 
   const handleBulkStatusUpdate = () => {
     if (selectedRowIds.length === 0) {
@@ -300,10 +319,7 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
               {selectedRowIds.length} order(s) selected
             </Typography>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setSelectedRowIds([])}
-              >
+              <Button variant="outline" onClick={() => setSelectedRowIds([])}>
                 Clear Selection
               </Button>
               <Button
@@ -325,13 +341,13 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
         perPage={perPage}
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={showAllOnSinglePage ? () => {} : onPageChange}
-        hidePagination={showAllOnSinglePage}
+        onPageChange={onPageChange}
+        hidePagination={false}
         emptyStateMessage="No orders found matching your criteria. Try adjusting your filters or search terms."
         enableRowSelection={true}
         onRowSelectionChange={setSelectedRowIds}
       />
-      
+
       {/* Single Order Status Update Dialog */}
       <Dialog open={openStatusDialog} onOpenChange={setOpenStatusDialog}>
         <DialogContent>
@@ -370,7 +386,10 @@ const OrdersTable = ({ setOrdersLength, params, setParams, showAllOnSinglePage =
       </Dialog>
 
       {/* Bulk Status Update Dialog */}
-      <Dialog open={openBulkStatusDialog} onOpenChange={setOpenBulkStatusDialog}>
+      <Dialog
+        open={openBulkStatusDialog}
+        onOpenChange={setOpenBulkStatusDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Bulk Update Order Status</DialogTitle>
