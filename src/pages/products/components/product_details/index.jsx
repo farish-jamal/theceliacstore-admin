@@ -3,24 +3,36 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Typography from "@/components/typography";
 import { fetchProductById } from "../helpers/fetchProductById";
 import NavbarItem from "@/components/navbar/navbar_item";
+import { migrateProductImages } from "../helpers/migrateProductImages";
+import { toast } from "sonner";
 
 const ProductDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [previewImg, setPreviewImg] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product_details", id],
     queryFn: () => fetchProductById({ id }),
     select: (data) => data.response?.data,
     enabled: !!id,
+  });
+
+  const { mutate: migrateImages, isLoading: isMigratingImages } = useMutation({
+    mutationFn: () => migrateProductImages({ id }),
+    onSuccess: () => {
+      toast.success("Images migration triggered");
+      queryClient.invalidateQueries(["product_details", id]);
+    },
+    onError: () => toast.error("Failed to migrate images"),
   });
 
   if (isLoading || !product) {
@@ -40,13 +52,24 @@ const ProductDetails = () => {
     <div className="px-8 py-2 space-y-2">
       <NavbarItem title={"Products"} breadcrumbs={breadcrumbs} />
 
-      <Button
-        variant="ghost"
-        className="flex items-center gap-2 text-sm px-0 mb-4"
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Products
-      </Button>
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 text-sm px-0 mb-4"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Products
+        </Button>
+
+        <Button
+          className="gap-2"
+          onClick={() => migrateImages()}
+          disabled={isMigratingImages}
+        >
+          {isMigratingImages && <Loader2 className="w-4 h-4 animate-spin" />}
+          Migrate all photos to clousinary
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mx-4">
         {/* Product Images */}
