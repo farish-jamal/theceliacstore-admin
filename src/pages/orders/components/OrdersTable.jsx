@@ -210,12 +210,12 @@ const OrdersTable = ({
               status === "delivered"
                 ? "success"
                 : status === "cancelled"
-                ? "destructive"
-                : status === "pending"
-                ? "outline"
-                : status === "processing" || status === "in_progress"
-                ? "secondary"
-                : "default"
+                  ? "destructive"
+                  : status === "pending"
+                    ? "outline"
+                    : status === "processing" || status === "in_progress"
+                      ? "secondary"
+                      : "default"
             }
             className="w-fit"
           >
@@ -225,28 +225,15 @@ const OrdersTable = ({
       ),
     },
     {
-      key: "totalAmount",
+      key: "finalTotalAmount",
       label: "Total Amount",
-      render: (totalAmount, row) => {
-        const discountedAmount = row?.discountedTotalAmount;
-        const originalAmount = row?.totalAmount || totalAmount || 0;
-        const finalAmount =
-          discountedAmount !== undefined ? discountedAmount : originalAmount;
-
+      render: (finalTotalAmount, row) => {
+        const finalAmount = finalTotalAmount || row?.finalTotalAmount || 0;
         return (
           <div className="flex flex-col gap-1">
             <Typography variant="p" className="font-semibold text-green-600">
               ₹{finalAmount.toFixed(2)}
             </Typography>
-            {discountedAmount !== undefined &&
-              originalAmount !== discountedAmount && (
-                <Typography
-                  variant="small"
-                  className="text-gray-500 line-through"
-                >
-                  ₹{originalAmount.toFixed(2)}
-                </Typography>
-              )}
           </div>
         );
       },
@@ -276,11 +263,6 @@ const OrdersTable = ({
                 label: "View Details",
                 icon: Eye,
                 action: () => navigate(`/dashboard/orders/${order._id}`),
-              },
-              {
-                label: "Update Status",
-                icon: Pencil,
-                action: () => onOpenStatusDialog(order),
               },
             ]}
           />
