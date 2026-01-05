@@ -11,6 +11,8 @@ export const endpoints = {
   //admins
   admin_register: "api/auth/admin/register",
   admin: "api/auth/admin",
+  superadmin_register: "api/auth/super-admin/register",
+  superadmin: "api/auth/super-admin",
   //blogs
   blogs: "api/blogs",
   //contact-us

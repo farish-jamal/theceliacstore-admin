@@ -3,7 +3,7 @@ import { endpoints } from "@/api/endpoints";
 
 export const createAdmin = async (formData) => {
   const result = await apiService({
-    endpoint: endpoints.admin_register,
+    endpoint: endpoints.superadmin_register,
     method: "POST",
     data: formData,
   });

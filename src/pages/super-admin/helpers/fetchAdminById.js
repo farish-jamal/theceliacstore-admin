@@ -4,7 +4,7 @@ import { endpoints } from "@/api/endpoints";
 export const fetchAdminById = async (id) => {
   try {
     const apiResponse = await apiService({
-      endpoint: `${endpoints.admin}/${id}`,
+      endpoint: `${endpoints.superadmin}/${id}`,
       method: "GET",
     });
 

@@ -4,7 +4,7 @@ import { endpoints } from "@/api/endpoints";
 export const deleteAdmin = async (id) => {
   try {
     const apiResponse = await apiService({
-      endpoint: `${endpoints.admin}/delete/${id}`,
+      endpoint: `${endpoints.superadmin}/delete/${id}`,
       method: "DELETE",
     });
 

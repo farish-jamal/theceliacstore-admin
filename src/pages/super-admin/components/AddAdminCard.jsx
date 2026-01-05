@@ -19,7 +19,7 @@ const AddSuperAdminCard = () => {
     name: "",
     email: "",
     password: "",
-    role: "superadmin",
+    role: "super-admin",
     is_active: false,
   });
   const mutation = useMutation({
@@ -69,12 +69,12 @@ const AddSuperAdminCard = () => {
   return (
     <>
       <NavbarItem
-        title="Add Admin"
-        breadcrumbs={[{ title: "Add Admin", isNavigation: false }]}
+        title="Add Super Admin"
+        breadcrumbs={[{ title: "Add Super Admin", isNavigation: false }]}
       />
 
       <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border border-gray-200">
-        <Typography variant="h3">Add Admin</Typography>
+        <Typography variant="h3">Add Super Admin</Typography>
 
         {/* Name */}
         <div className="space-y-2">
@@ -129,7 +129,7 @@ const AddSuperAdminCard = () => {
             disabled
             className="border rounded px-3 py-2 text-sm"
           >
-            <option value="admin">Admin</option>
+            <option value="admin">Super Admin</option>
           </select>
         </div>
 
@@ -154,7 +154,7 @@ const AddSuperAdminCard = () => {
           onClick={handleSubmit}
           disabled={mutation.isLoading}
         >
-          {mutation.isLoading ? "Submitting..." : "Create Admin"}
+          {mutation.isLoading ? "Submitting..." : "Create Super-Admin"}
         </Button>
       </div>
     </>
