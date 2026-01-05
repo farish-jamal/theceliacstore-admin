@@ -14,24 +14,29 @@ import { createAdmin } from "../helpers/createAdmin";
 const AddAdminCard = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+
   const [formData, setFormData] = useState({
-    name: "", // ✅ Changed from full_name
+    name: "",
     email: "",
     password: "",
     role: "admin",
     is_active: false,
   });
-
   const mutation = useMutation({
-    mutationFn: (formData) => createAdmin(formData),
-    onSuccess: () => {
-      toast.success("Admin created successfully!");
+    mutationFn: async (payload) => {
+      return await createAdmin(payload);
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Admin created successfully!");
       navigate("/dashboard/admins");
     },
     onError: (error) => {
-      toast.error(error?.message || "Failed to create admin");
+      toast.error(error.message || "Something went wrong");
     },
   });
+  
+  
+  
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -69,15 +74,12 @@ const AddAdminCard = () => {
       />
 
       <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border border-gray-200">
-        <Typography variant="h3" className="mb-4">
-          Add Admin
-        </Typography>
+        <Typography variant="h3">Add Admin</Typography>
 
         {/* Name */}
         <div className="space-y-2">
           <Label>Full Name</Label>
           <Input
-            type="text"
             name="name"
             value={formData.name}
             onChange={handleChange}
@@ -111,7 +113,7 @@ const AddAdminCard = () => {
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute top-[38px] right-3 text-gray-500 hover:text-gray-700"
+            className="absolute top-[38px] right-3 text-gray-500"
             tabIndex={-1}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -124,15 +126,14 @@ const AddAdminCard = () => {
           <select
             name="role"
             value={formData.role}
-            onChange={handleChange}
-            className="w-30 border rounded px-3 py-2 text-sm"
             disabled
+            className="border rounded px-3 py-2 text-sm"
           >
             <option value="admin">Admin</option>
           </select>
         </div>
 
-        {/* Is Active */}
+        {/* Active */}
         <div className="flex items-center space-x-2">
           <Checkbox
             id="is_active"
@@ -148,15 +149,13 @@ const AddAdminCard = () => {
         </div>
 
         {/* Submit */}
-        <div className="pt-4">
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={mutation.isLoading}
-          >
-            {mutation.isLoading ? "Submitting..." : "Create Admin"}
-          </Button>
-        </div>
+        <Button
+          className="w-full"
+          onClick={handleSubmit}
+          disabled={mutation.isLoading}
+        >
+          {mutation.isLoading ? "Submitting..." : "Create Admin"}
+        </Button>
       </div>
     </>
   );
