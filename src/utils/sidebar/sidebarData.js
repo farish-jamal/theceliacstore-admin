@@ -57,6 +57,14 @@ export const data = {
       roles: [ "super_admin"], 
     },
     {
+      title: "Super Admins",
+      url: "/dashboard/super-admin",
+      icon: Users2,
+      isActive: true,
+      items: [],
+      roles: [ "super_admin"], 
+    },
+    {
       title: "Users",
       url: "/dashboard/users",
       icon: Users,
