@@ -11,6 +11,8 @@ import Typography from "@/components/typography";
 import { createAdmin } from "../../helpers/createAdmin";
 import { updateAdmin } from "../../helpers/updateAdmin";
 
+
+
 const SuperAdminEditorCard = ({ initialData, isEdit }) => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -19,18 +21,17 @@ const SuperAdminEditorCard = ({ initialData, isEdit }) => {
     name: "",
     email: "",
     password: "",
-    role: "admin",
+    role: "super-admin",
     is_active: false,
   });
 
-  // Populate form with initial data when editing
   useEffect(() => {
     if (isEdit && initialData) {
       setFormData({
         name: initialData.name || "",
         email: initialData.email || "",
-        password: "", // Don't pre-fill password for security
-        role: initialData.role || "admin",
+        password: "", 
+        role: initialData.role || "super-admin",
         is_active: initialData.is_active || false,
       });
     }
@@ -39,8 +40,8 @@ const SuperAdminEditorCard = ({ initialData, isEdit }) => {
   const createMutation = useMutation({
     mutationFn: (formData) => createAdmin(formData),
     onSuccess: () => {
-      toast.success("Admin created successfully!");
-      navigate("/dashboard/admins");
+      toast.success("Super Admin created successfully!");
+      navigate(-1);
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to create admin");
@@ -51,7 +52,7 @@ const SuperAdminEditorCard = ({ initialData, isEdit }) => {
     mutationFn: (payload) => updateAdmin({ payload, id }),
     onSuccess: () => {
       toast.success("Admin updated successfully!");
-      navigate("/dashboard/admins");
+      navigate(-1);
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to update admin");
@@ -106,7 +107,7 @@ const SuperAdminEditorCard = ({ initialData, isEdit }) => {
   return (
     <div className="p-10 max-w-6xl mx-auto w-full space-y-6 bg-white rounded-xl border border-gray-200">
       <Typography variant="h3" className="mb-4">
-        {isEdit ? "Edit Admin" : "Add Admin"}
+        {isEdit ? "Edit Super Admin" : " Add Super Admin"}
       </Typography>
 
       {/* Name */}
@@ -163,10 +164,10 @@ const SuperAdminEditorCard = ({ initialData, isEdit }) => {
           name="role"
           value={formData.role}
           onChange={handleChange}
-          className="w-30 border rounded px-3 py-2 text-sm"
+          className="w-35 border rounded px-3 py-2 text-sm"
           disabled
         >
-          <option value="admin">Admin</option>
+          <option value="admin">Super Admin</option>
         </select>
       </div>
 
@@ -197,8 +198,8 @@ const SuperAdminEditorCard = ({ initialData, isEdit }) => {
               ? "Updating..."
               : "Creating..."
             : isEdit
-            ? "Update Admin"
-            : "Create Admin"}
+            ? "Update Super Admin"
+            : "Create Super  Admin"}
         </Button>
       </div>
     </div>

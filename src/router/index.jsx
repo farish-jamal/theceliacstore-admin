@@ -37,6 +37,7 @@ import ShipmentZoneDetails from "@/pages/shipment_zones/components/ShipmentZoneD
 import SuperAdmin from "@/pages/super-admin";
 import AddSuperAdminCard from "@/pages/super-admin/components/AddAdminCard";
 import SuperAdminEditorCard from "@/pages/super-admin/components/super-admin_editor/AdminEditorCard";
+import SuperEditor from "@/pages/super-admin/components/super-admin_editor";
 
 const Router = () => {
   return (
@@ -93,7 +94,7 @@ const Router = () => {
           <Route path="/dashboard/admins/edit/:id" element={<AdminEditor />} />
           <Route path="/dashboard/super-admin" element={<SuperAdmin />} />
           <Route path="/dashboard/super-admin/add" element={<AddSuperAdminCard />} />
-          <Route path="/dashboard/super-admin/edit/:id" element={<SuperAdminEditorCard />} />
+          <Route path="/dashboard/super-admin/edit/:id" element={<SuperEditor />} />
           {/* Blogs */}
           <Route path="/dashboard/blogs" element={<Blogs />} />
           <Route path="/dashboard/blogs/add" element={<BlogEditor />} />

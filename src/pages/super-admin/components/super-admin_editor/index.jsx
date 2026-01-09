@@ -2,10 +2,10 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import NavbarItem from "@/components/navbar/navbar_item";
-import AdminEditorCard from "./AdminEditorCard";
 import { fetchAdminById } from "../../helpers/fetchAdminById";
+import SuperAdminEditorCard from "./AdminEditorCard";
 
-const AdminEditor = () => {
+const SuperEditor = () => {
   const { id } = useParams();
 
   const {
@@ -13,22 +13,32 @@ const AdminEditor = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["admin", id],
-    queryFn: () => fetchAdminById(id),
+    queryKey: ["super-admin", id],
+    queryFn: async () => {
+      console.log("Calling API with ID:", id);
+  
+      const res = await fetchAdminById(id);
+  
+      console.log("Full API Response:", res);
+      console.log("API Data:", res?.response?.data);
+  
+      return res;
+    },
     enabled: !!id,
   });
+  
 
   const initialData = initialDataRes?.response?.data;
 
   const breadcrumbs = [
     { title: "Admins", isNavigation: true, path: "/dashboard/admins" },
-    { title: id ? "Edit Admin" : "Add Admin", isNavigation: false },
+    { title: id ? "Edit Super Admin" : "Add Super Admin", isNavigation: false },
   ];
 
   return (
     <div className="flex flex-col gap-2">
       <NavbarItem
-        title={id ? "Edit Admin" : "Add Admin"}
+        title={id ? "Edit Super Admin" : "Add Super Admin"}
         breadcrumbs={breadcrumbs}
       />
       <div className="px-8 pb-8">
@@ -41,11 +51,11 @@ const AdminEditor = () => {
         ) : id && !initialData ? (
           <p className="text-red-500 text-center">No admin data found.</p>
         ) : (
-          <AdminEditorCard initialData={initialData} isEdit={!!id} />
+          <SuperAdminEditorCard initialData={initialData} isEdit={!!id} />
         )}
       </div>
     </div>
   );
 };
 
-export default AdminEditor;
+export default SuperEditor;
