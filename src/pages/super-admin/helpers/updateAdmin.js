@@ -4,7 +4,7 @@ import { endpoints } from "@/api/endpoints";
 export const updateAdmin = async ({ payload, id }) => {
   try {
     const apiResponse = await apiService({
-      endpoint: `${endpoints.superadmin}/edit/${id}`,
+      endpoint: `${endpoints.superadmin}/update/${id}`,
       method: "PATCH",
       data: payload,
       hasFile: false,

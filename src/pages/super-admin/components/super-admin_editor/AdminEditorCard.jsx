@@ -11,8 +11,6 @@ import Typography from "@/components/typography";
 import { createAdmin } from "../../helpers/createAdmin";
 import { updateAdmin } from "../../helpers/updateAdmin";
 
-
-
 const SuperAdminEditorCard = ({ initialData, isEdit }) => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -92,8 +90,6 @@ const SuperAdminEditorCard = ({ initialData, isEdit }) => {
     if (password.trim()) {
       payload.password = password;
     }
-
-    console.log("📤 JSON Payload Preview:", payload);
 
     if (isEdit) {
       updateMutation.mutate(payload);

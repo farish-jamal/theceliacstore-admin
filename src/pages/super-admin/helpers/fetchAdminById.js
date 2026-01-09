@@ -6,7 +6,7 @@ export const fetchAdminById = async (id) => {
     console.log("Admin ID:", id);
 
     const apiResponse = await apiService({
-      endpoint: `${endpoints.superadmin}/${id}`,
+      endpoint: `${endpoints.superadmin}/get-admin/${id}`,
       method: "GET",
     });
 
