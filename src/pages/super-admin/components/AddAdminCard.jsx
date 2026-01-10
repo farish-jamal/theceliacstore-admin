@@ -28,7 +28,7 @@ const AddSuperAdminCard = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message || "Admin created successfully!");
-      navigate("/dashboard/admins");
+      navigate(-1);
     },
     onError: (error) => {
       toast.error(error.message || "Something went wrong");
