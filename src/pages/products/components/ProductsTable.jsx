@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import ActionMenu from "@/components/action_menu";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import CustomTable from "@/components/custom_table";
 import Typography from "@/components/typography";
 import { CustomDialog } from "@/components/custom_dialog";
@@ -10,6 +11,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { fetchProducts } from "./helpers/fetchProducts";
 import { deleteProduct } from "./helpers/deleteProduct";
+import { migrateProductImages } from "./helpers/migrateProductImages";
 
 const ProductsTable = ({ setProductLength, params, setParams }) => {
   const navigate = useNavigate();
@@ -20,11 +22,38 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
     error,
   } = useQuery({
     queryKey: ["products", params],
-    queryFn: () => fetchProducts({ params }),  });
-
+    queryFn: () => fetchProducts({ params }),
+  });
 
   const [openDelete, setOpenDelete] = useState(false);
   const [productData, setProductData] = useState(null);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [bulkMigrating, setBulkMigrating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(0);
+  // Bulk migrate handler
+  const handleBulkMigrate = async () => {
+    setBulkMigrating(true);
+    setBulkProgress(0);
+    for (let i = 0; i < selectedRows.length; i++) {
+      const rowId = selectedRows[i];
+      const product = products.find((p) => (p._id || `${products.indexOf(p)}`) === rowId);
+      if (product) {
+        try {
+          await migrateProductImages({ id: product._id });
+        } catch (e) {
+          // Optionally handle error per product
+        }
+      }
+      setBulkProgress(i + 1);
+    }
+    toast.success("Bulk migration complete");
+    setBulkMigrating(false);
+    setBulkProgress(0);
+    // Uncheck all checkboxes after migration (force clear selection for CustomTable)
+    setSelectedRows([]); // for controlled selection
+    // Also trigger a rerender for CustomTable's internal state if needed
+    queryClient.invalidateQueries(["products"]);
+  };
 
   const onOpenDialog = (row) => {
     setOpenDelete(true);
@@ -60,6 +89,21 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
 
   const onDeleteClick = (id) => {
     deleteProuductsMutation(id);
+  };
+
+  // Track loading state for migration per product
+  const [migratingId, setMigratingId] = useState(null);
+  const migrateImages = async (row) => {
+    setMigratingId(row._id);
+    try {
+      await migrateProductImages({ id: row._id });
+      toast.success("Images migration triggered");
+      queryClient.invalidateQueries(["products"]);
+    } catch (e) {
+      toast.error("Failed to migrate images");
+    } finally {
+      setMigratingId(null);
+    }
   };
   const products = apiProductsResponse?.data || [];
   const total = apiProductsResponse?.total || 0;
@@ -115,12 +159,12 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
     {
       key: "price",
       label: "Price",
-      render: (value) => `₹${value?.$numberDecimal || value || ''}`,
+      render: (value) => `₹${value?.$numberDecimal || value || ""}`,
     },
     {
       key: "discounted_price",
       label: "Discounted Price",
-      render: (value) => `₹${value?.$numberDecimal || value || ''}`,
+      render: (value) => `₹${value?.$numberDecimal || value || ""}`,
     },
     {
       key: "brand",
@@ -191,6 +235,21 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
       ),
     },
     {
+      key: "isImported",
+      label: "Imported",
+      render: (value, row) => {
+        const images = row.images || [];
+        const isImported = images.some(
+          (img) => typeof img === "string" && img.includes("res.cloudinary.com")
+        );
+        return isImported ? (
+          <CheckCircle className="text-green-500 w-5 h-5 mx-auto" title="Imported" />
+        ) : (
+          <XCircle className="text-red-500 w-5 h-5 mx-auto" title="Not Imported" />
+        );
+      },
+    },
+    {
       key: "actions",
       label: "Actions",
       render: (value, row) => (
@@ -205,6 +264,16 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
               label: "Edit",
               icon: Pencil,
               action: () => onNavigateToEdit(row),
+            },
+            {
+              label: "Migrate images to Cloudinary",
+              icon: Loader2,
+              action: () => migrateImages(row),
+              disabled: migratingId === row._id,
+              renderRight:
+                migratingId === row._id
+                  ? () => <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  : undefined,
             },
             {
               label: "Delete",
@@ -225,6 +294,36 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
 
   return (
     <>
+      <div className="flex items-center gap-4 mb-4">
+        <Button
+          className="gap-2"
+          disabled={
+            bulkMigrating ||
+            selectedRows.length === 0 ||
+            selectedRows.length > 10
+          }
+          onClick={handleBulkMigrate}
+        >
+          Bulk Migrate
+          {bulkMigrating && (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          )}
+        </Button>
+        {selectedRows.length > 10 && (
+          <span className="text-red-500 text-sm">You can only migrate up to 10 products at once.</span>
+        )}
+        {bulkMigrating && (
+          <div className="flex items-center gap-2 w-48">
+            <div className="w-full bg-gray-200 rounded h-2 overflow-hidden">
+              <div
+                className="bg-primary h-2 rounded"
+                style={{ width: `${(bulkProgress / selectedRows.length) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-700">{bulkProgress}/{selectedRows.length}</span>
+          </div>
+        )}
+      </div>
       <CustomTable
         columns={columns}
         data={products || []}
@@ -234,6 +333,9 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
         currentPage={currentPage}
         perPage={perPage}
         onPageChange={onPageChange}
+        enableRowSelection={true}
+        selectedRows={selectedRows}
+        onRowSelectionChange={setSelectedRows}
       />
       <CustomDialog
         onOpen={openDelete}

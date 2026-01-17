@@ -26,14 +26,7 @@ const ProductDetails = () => {
     enabled: !!id,
   });
 
-  const { mutate: migrateImages, isLoading: isMigratingImages } = useMutation({
-    mutationFn: () => migrateProductImages({ id }),
-    onSuccess: () => {
-      toast.success("Images migration triggered");
-      queryClient.invalidateQueries(["product_details", id]);
-    },
-    onError: () => toast.error("Failed to migrate images"),
-  });
+
 
   if (isLoading || !product) {
     return (
@@ -59,15 +52,6 @@ const ProductDetails = () => {
           onClick={() => navigate(-1)}
         >
           <ArrowLeft className="w-4 h-4" /> Back to Products
-        </Button>
-
-        <Button
-          className="gap-2"
-          onClick={() => migrateImages()}
-          disabled={isMigratingImages}
-        >
-          {isMigratingImages && <Loader2 className="w-4 h-4 animate-spin" />}
-          Migrate all photos to clousinary
         </Button>
       </div>
 
@@ -120,9 +104,9 @@ const ProductDetails = () => {
             {product.is_best_seller && (
               <Badge variant="secondary">Best Seller</Badge>
             )}
-            <Badge variant={product.instock ? "default" : "destructive"}>
+            {/* <Badge variant={product.instock ? "default" : "destructive"}>
   {product.instock ? "In Stock" : "Out of Stock"}
-</Badge>
+</Badge> */}
           </div>
 
           <p className="text-muted-foreground text-sm">

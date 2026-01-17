@@ -2,7 +2,7 @@ import NavbarItem from "@/components/navbar/navbar_item";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useDebounce } from "@uidotdev/usehooks";
-import { DateRangePicker } from "@/components/date_filter";
+// Removed DateRangePicker import
 import CustomActionMenu from "@/components/custom_action";
 import OrdersTable from "./components/OrdersTable";
 import SKUTable from "./components/SKUTable";
@@ -10,6 +10,10 @@ import ViewSwitcher from "@/components/view_switcher";
 import StatusFilter from "@/components/status_filter";
 import { fetchProductsWithOrders } from "./helpers/fetchProductsWithOrders";
 import { useQuery } from "@tanstack/react-query";
+
+import { Button } from "@/components/ui/button";
+import { apiService } from "@/api/api_service/apiService";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 
@@ -90,6 +94,50 @@ const Orders = () => {
     });
   };
 
+  // Export dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportDateRange, setExportDateRange] = useState({ from: '', to: '' });
+  const [exportResult, setExportResult] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExportOrders = async () => {
+    setExportLoading(true);
+    setExportResult(null);
+    try {
+      const paramsObj = {};
+      if (exportDateRange.from) paramsObj.start_date = exportDateRange.from;
+      if (exportDateRange.to) paramsObj.end_date = exportDateRange.to;
+      // Use apiService to get the download link, then fetch the file as blob and download
+      const { response: data } = await apiService({
+        endpoint: `api/order/export`,
+        method: "GET",
+        params: paramsObj,
+      });
+      const fileUrl = data?.cloudinary_url || data?.url;
+      if (fileUrl) {
+        const res = await fetch(fileUrl);
+        const blob = await res.blob();
+        const contentDisposition = res.headers.get('content-disposition');
+        let filename = 'orders_export.csv';
+        if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
+          filename = contentDisposition.split('filename=')[1].replace(/"/g, '').trim();
+        }
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExportResult({ success: true });
+      } else {
+        setExportResult({ error: true });
+      }
+    } catch (err) {
+      setExportResult({ error: true });
+    }
+    setExportLoading(false);
+  };
+
   useEffect(() => {
     if (params.search !== debouncedSearch) {
       setParams((prev) => ({
@@ -126,7 +174,6 @@ const Orders = () => {
               currentView={currentView} 
               onViewChange={handleViewChange} 
             />
-            <DateRangePicker onChange={handleDateRangeChange} />
           </div>
         }
       />
@@ -196,12 +243,74 @@ const Orders = () => {
                 showRowSelection={false}
                 disableBulkExport={true}
               />
-              
-              <StatusFilter
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
-                placeholder="Filter by Status"
-              />
+              <div className="flex items-center gap-2">
+                <Button onClick={() => setExportDialogOpen(true)} variant="outline">
+                  Export Orders
+                </Button>
+                <StatusFilter
+                  value={statusFilter}
+                  onChange={handleStatusFilterChange}
+                  placeholder="Filter by Status"
+                />
+              </div>
+              {/* Export Dialog */}
+              <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+                <DialogContent className="max-w-md w-full p-8 rounded-xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl mb-2">Export Orders</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-6">
+                    <div>
+                      <div className="font-semibold mb-2 text-base">Select date range to export</div>
+                      <div className="flex flex-col sm:flex-row gap-4 bg-muted/50 rounded-lg p-4 border items-center">
+                        <div className="flex flex-col gap-1">
+                          <label htmlFor="export-from" className="text-xs font-medium">From</label>
+                          <input
+                            id="export-from"
+                            type="date"
+                            className="border rounded px-2 py-1"
+                            value={exportDateRange.from}
+                            max={exportDateRange.to || ''}
+                            onChange={e => setExportDateRange(r => ({ ...r, from: e.target.value }))}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label htmlFor="export-to" className="text-xs font-medium">To</label>
+                          <input
+                            id="export-to"
+                            type="date"
+                            className="border rounded px-2 py-1"
+                            value={exportDateRange.to}
+                            min={exportDateRange.from || ''}
+                            onChange={e => setExportDateRange(r => ({ ...r, to: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="lg"
+                      onClick={handleExportOrders}
+                      disabled={exportLoading}
+                      className="w-full text-base font-semibold"
+                    >
+                      {exportLoading ? "Exporting..." : "Export"}
+                    </Button>
+                    {exportResult && exportResult.success && (
+                      <div className="mt-4 text-green-700 text-sm border rounded p-3 bg-green-50">
+                        Export successful. File downloaded.
+                      </div>
+                    )}
+                    {exportResult && exportResult.error && (
+                      <div className="mt-4 text-red-600 text-sm border rounded p-3 bg-red-50">Failed to export orders.</div>
+                    )}
+                  </div>
+                  <DialogFooter className="mt-6">
+                    <DialogClose asChild>
+                      <Button variant="outline" className="w-full">Close</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {currentView === "orders" ? (
