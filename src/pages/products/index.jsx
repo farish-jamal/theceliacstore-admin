@@ -16,7 +16,7 @@ const Products = () => {
   const [searchText, setSearchText] = useState("");
   const [params, setParams] = useState({
     page: 1,
-    per_page: 25,
+    per_page: 10,
     search: "",
     start_date: undefined,
     end_date: undefined,
@@ -35,7 +35,7 @@ const Products = () => {
   };
 
   const onAdd = () => {
-    navigate("/dashboard/product/add"); 
+    navigate("/dashboard/product/add");
   };
 
   const onRowsPerPageChange = (newRowsPerPage) => {
@@ -64,7 +64,7 @@ const Products = () => {
       />
 
       <div className="px-4">
-      <CustomActionMenu
+        <CustomActionMenu
           title="products"
           total={productLength}
           onAdd={onAdd}
@@ -82,17 +82,17 @@ const Products = () => {
           rowsPerPage={params.per_page}
         />
         <ProductsTable
-       setProductLength={setProductLength}
-       params={params}
-       setParams={setParams}
+          setProductLength={setProductLength}
+          params={params}
+          setParams={setParams}
         />
-         <ExcelUploadDialog
+        <ExcelUploadDialog
           openDialog={openDialog}
           setOpenDialog={setOpenDialog}
           params={params || {}}
         />
 
-         <ExportProductDialog
+        <ExportProductDialog
           openDialog={openBulkExportDialog}
           onClose={onCloseBulkExportDialog}
           params={params}
