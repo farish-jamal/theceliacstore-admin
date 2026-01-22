@@ -112,13 +112,36 @@ function CustomTable({
     // getPaginationRowModel: getPaginationRowModel(),
   });
 
-  // Notify parent when row selection changes
   useEffect(() => {
     if (onRowSelectionChange && enableRowSelection) {
       const selectedRowIds = Object.keys(rowSelection);
-      onRowSelectionChange(selectedRowIds);
+      const currentSelectedSet = new Set(selectedRows);
+      const hasChanges =
+        selectedRowIds.length !== selectedRows.length ||
+        !selectedRowIds.every((id) => currentSelectedSet.has(id));
+
+      if (hasChanges) {
+        onRowSelectionChange(selectedRowIds);
+      }
     }
   }, [rowSelection, onRowSelectionChange, enableRowSelection]);
+  useEffect(() => {
+    if (enableRowSelection && selectedRows) {
+      const newSelection = {};
+      selectedRows.forEach((id) => {
+        newSelection[id] = true;
+      });
+
+      const currentKeys = Object.keys(rowSelection);
+      const isDifferent =
+        currentKeys.length !== selectedRows.length ||
+        !currentKeys.every((key) => newSelection[key]);
+
+      if (isDifferent) {
+        setRowSelection(newSelection);
+      }
+    }
+  }, [selectedRows, enableRowSelection]);
 
   if (isLoading) {
     return (
@@ -252,7 +275,7 @@ function CustomTable({
                 </PaginationItem>
               ))}
 
-            {/* Last Ellipsis */}
+
             {currentPage < totalPages - 2 && (
               <>
                 <PaginationItem>
