@@ -274,11 +274,11 @@ const OrdersTable = ({
   const onPageChange = (page) => {
     setParams((prev) => ({
       ...prev,
-      page: page + 1,
+      page: page,
     }));
   };
 
-  const currentPage = (params.page || 1) - 1;
+  const currentPage = params.page || 1;
   const totalPages = Math.ceil(orderTotal / perPage);
 
   const handleBulkStatusUpdate = () => {
@@ -327,6 +327,7 @@ const OrdersTable = ({
         hidePagination={false}
         emptyStateMessage="No orders found matching your criteria. Try adjusting your filters or search terms."
         enableRowSelection={true}
+        selectedRows={selectedRowIds}
         onRowSelectionChange={setSelectedRowIds}
       />
 
