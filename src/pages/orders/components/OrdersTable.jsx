@@ -43,7 +43,7 @@ const OrdersTable = ({
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const perPage = 10;
+  const perPage = params.per_page || 10;
   const queryParams = {
     ...params,
     per_page: perPage,
@@ -130,7 +130,7 @@ const OrdersTable = ({
             variant="p"
             className="font-mono font-medium text-blue-600"
           >
-            {row?._id}
+            {row?.orderNumber ? `#${row.orderNumber}` : row?._id}
           </Typography>
         </div>
       ),
@@ -203,7 +203,7 @@ const OrdersTable = ({
     {
       key: "status",
       label: "Status",
-      render: (status) => (
+      render: (status, row) => (
         <div className="flex flex-col gap-1">
           <Badge
             variant={
@@ -217,7 +217,8 @@ const OrdersTable = ({
                       ? "secondary"
                       : "default"
             }
-            className="w-fit"
+            className="w-fit cursor-pointer"
+            onClick={() => onOpenStatusDialog(row)}
           >
             {status.toUpperCase()}
           </Badge>
@@ -309,6 +310,37 @@ const OrdersTable = ({
                 disabled={selectedRowIds.length === 0}
               >
                 Update Status
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const selectedOrders = orders.filter((o) =>
+                    selectedRowIds.includes(o._id)
+                  );
+                  const csv = [
+                    ["Order ID", "Customer", "Status", "Total", "Date"].join(","),
+                    ...selectedOrders.map((o) =>
+                      [
+                        o.orderNumber ? `#${o.orderNumber}` : o._id,
+                        `"${o.address?.name || o.customer?.name || "Unknown"}"`,
+                        o.status,
+                        o.finalTotalAmount || 0,
+                        o.createdAt
+                          ? format(new Date(o.createdAt), "dd/MM/yyyy")
+                          : "",
+                      ].join(",")
+                    ),
+                  ].join("\n");
+                  const blob = new Blob([csv], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "selected_orders.csv";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                Export Selected
               </Button>
             </div>
           </div>

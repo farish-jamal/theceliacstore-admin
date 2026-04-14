@@ -244,6 +244,61 @@ const Orders = () => {
                 disableBulkExport={true}
               />
               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    className="border rounded px-2 py-1 text-sm h-10"
+                    value={
+                      params.start_date
+                        ? new Date(params.start_date).toISOString().split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) =>
+                      handleDateRangeChange(
+                        e.target.value
+                          ? {
+                              from: new Date(e.target.value),
+                              to: params.end_date
+                                ? new Date(params.end_date)
+                                : new Date(e.target.value),
+                            }
+                          : null
+                      )
+                    }
+                  />
+                  <span className="text-gray-400">–</span>
+                  <input
+                    type="date"
+                    className="border rounded px-2 py-1 text-sm h-10"
+                    value={
+                      params.end_date
+                        ? new Date(params.end_date).toISOString().split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) =>
+                      handleDateRangeChange(
+                        e.target.value
+                          ? {
+                              from: params.start_date
+                                ? new Date(params.start_date)
+                                : new Date(e.target.value),
+                              to: new Date(e.target.value),
+                            }
+                          : null
+                      )
+                    }
+                  />
+                </div>
+                <select
+                  className="border rounded px-2 py-1 text-sm h-10"
+                  value={params.per_page}
+                  onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
+                >
+                  <option value={10}>10 / page</option>
+                  <option value={25}>25 / page</option>
+                  <option value={50}>50 / page</option>
+                  <option value={100}>100 / page</option>
+                </select>
                 <Button onClick={() => setExportDialogOpen(true)} variant="outline">
                   Export Orders
                 </Button>
