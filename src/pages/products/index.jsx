@@ -16,7 +16,7 @@ const Products = () => {
   const [searchText, setSearchText] = useState("");
   const [params, setParams] = useState({
     page: 1,
-    per_page: 10,
+    per_page: 50,
     search: "",
     start_date: undefined,
     end_date: undefined,

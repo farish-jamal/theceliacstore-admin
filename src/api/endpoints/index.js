@@ -29,6 +29,7 @@ export const endpoints = {
   bulk_export_products: "api/product/export",
   //bulk_upload_products
   bulk_upload: "api/product/bulk",
+  bulk_update: "api/product/bulk-update",
   // migrate product assets
   product_migrate_images: "api/product/migrate-images",
   //dashboard

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import ActionMenu from "@/components/action_menu";
-import { Eye, Pencil, Trash2, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Eye, Pencil, Trash2, Loader2, CheckCircle, XCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CustomTable from "@/components/custom_table";
 import Typography from "@/components/typography";
@@ -12,6 +12,20 @@ import { useNavigate } from "react-router";
 import { fetchProducts } from "./helpers/fetchProducts";
 import { deleteProduct } from "./helpers/deleteProduct";
 import { migrateProductImages } from "./helpers/migrateProductImages";
+import { apiService } from "@/api/api_service/apiService";
+import { endpoints } from "@/api/endpoints";
+
+const STATUS_CONFIGS = {
+  liveInStock: { label: "Live & In Stock", bg: "bg-green-100", text: "text-green-700" },
+  liveOutOfStock: { label: "Live & Out of Stock", bg: "bg-amber-100", text: "text-amber-700" },
+  hidden: { label: "Hidden / Draft", bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+const getProductStatus = (row) => {
+  if (row.status === "published" && row.inventory === 1) return "liveInStock";
+  if (row.status === "published" && row.inventory === 0) return "liveOutOfStock";
+  return "hidden";
+};
 
 const ProductsTable = ({ setProductLength, params, setParams }) => {
   const navigate = useNavigate();
@@ -30,6 +44,43 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [bulkMigrating, setBulkMigrating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
+  const [bulkStatusConfirm, setBulkStatusConfirm] = useState(null); // { label, updates }
+
+  // Bulk status update
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ productIds, updates }) => {
+      const { response } = await apiService({
+        endpoint: endpoints.bulk_update,
+        method: "PATCH",
+        data: { productIds, updates },
+      });
+      return response;
+    },
+    onSuccess: (data) => {
+      toast.success(`${data?.data?.updated || 0} products updated successfully.`);
+      setSelectedRows([]);
+      setBulkStatusConfirm(null);
+      queryClient.invalidateQueries(["products"]);
+    },
+    onError: (error) => {
+      toast.error(`Bulk update failed: ${error?.message || "Unknown error"}`);
+      setBulkStatusConfirm(null);
+    },
+  });
+
+  const handleBulkStatusChange = (label, updates) => {
+    setBulkStatusConfirm({ label, updates });
+  };
+
+  const confirmBulkStatusChange = () => {
+    if (!bulkStatusConfirm) return;
+    const productIds = selectedRows.map((rowId) => {
+      const product = products.find((p) => (p._id || `${products.indexOf(p)}`) === rowId);
+      return product?._id;
+    }).filter(Boolean);
+    bulkUpdateMutation.mutate({ productIds, updates: bulkStatusConfirm.updates });
+  };
+
   // Bulk migrate handler
   const handleBulkMigrate = async () => {
     setBulkMigrating(true);
@@ -49,9 +100,7 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
     toast.success("Bulk migration complete");
     setBulkMigrating(false);
     setBulkProgress(0);
-    // Uncheck all checkboxes after migration (force clear selection for CustomTable)
-    setSelectedRows([]); // for controlled selection
-    // Also trigger a rerender for CustomTable's internal state if needed
+    setSelectedRows([]);
     queryClient.invalidateQueries(["products"]);
   };
 
@@ -70,7 +119,6 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
       ...prev,
       page,
     }));
-    // window.scrollTo(0, 0);
   };
 
   const { mutate: deleteProuductsMutation, isLoading: isDeleting } =
@@ -122,8 +170,6 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
 
   useEffect(() => {
     setProductLength(products?.length);
-    // console.log("Fetched products:", products);
-    // console.log("API response:", apiProductsResponse);
   }, [products, setProductLength]);
 
   const perPage = params.per_page;
@@ -147,15 +193,6 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
         </div>
       ),
     },
-    // {
-    //   key: "small_description",
-    //   label: "Short Description",
-    //   render: (value) => (
-    //     <Typography variant="p" className="text-sm w-[20rem] text-wrap line-clamp-2">
-    //       {value}
-    //     </Typography>
-    //   ),
-    // },
     {
       key: "price",
       label: "Price",
@@ -172,49 +209,18 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
       render: (value) => value?.name || "No Brand",
     },
     {
-      key: "instock",
-      label: "In Stock",
-      render: (value) => (value ? "Yes" : "No"),
+      key: "status",
+      label: "Status",
+      render: (_value, row) => {
+        const statusKey = getProductStatus(row);
+        const config = STATUS_CONFIGS[statusKey];
+        return (
+          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+            {config.label}
+          </span>
+        );
+      },
     },
-    // {
-    //   key: "inventory",
-    //   label: "Inventory",
-    // },
-    // {
-    //   key: "product_type",
-    //   label: "Product type",
-    //   render: (value) => {
-    //     let bg = "bg-blue-100";
-    //     let text = "text-blue-700";
-    //     if (value === "service") {
-    //       bg = "bg-purple-100";
-    //       text = "text-purple-700";
-    //     } else if (value === "product") {
-    //       bg = "bg-blue-100";
-    //       text = "text-blue-700";
-    //     }
-    //     return (
-    //       <span
-    //         className={`inline-block px-2 py-1 rounded-full ${bg} ${text} text-xs font-medium`}
-    //       >
-    //         {value ? value.charAt(0).toUpperCase() + value.slice(1) : "-"}
-    //       </span>
-    //     );
-    //   },
-    // },
-    // {
-    //   key: "is_active",
-    //   label: "Status",
-    //   render: (value) => (
-    //     <span
-    //       className={`px-2 py-1 rounded-full text-sm ${
-    //         value ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-    //       }`}
-    //     >
-    //       {value ? "Active" : "Inactive"}
-    //     </span>
-    //   ),
-    // },
     {
       key: "createdAt",
       label: "Created At",
@@ -281,11 +287,6 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
               action: () => onOpenDialog(row),
               className: "text-red-500",
             },
-            // {
-            //   label: "Inventory history",
-            //   icon: Eye,
-            //   action: () => onNavigateInventoryHistory(row),
-            // },
           ]}
         />
       ),
@@ -294,6 +295,64 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
 
   return (
     <>
+      {/* Floating bulk action bar */}
+      {selectedRows.length > 0 && (
+        <div className="flex items-center gap-3 p-3 mb-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm font-medium text-blue-800">{selectedRows.length} product{selectedRows.length > 1 ? "s" : ""} selected</span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+              onClick={() => handleBulkStatusChange("Live & In Stock", { status: "published", inventory: 1 })}
+              disabled={bulkUpdateMutation.isPending}
+            >
+              Live &amp; In Stock
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+              onClick={() => handleBulkStatusChange("Live & Out of Stock", { status: "published", inventory: 0 })}
+              disabled={bulkUpdateMutation.isPending}
+            >
+              Live &amp; Out of Stock
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100"
+              onClick={() => handleBulkStatusChange("Hidden", { status: "draft", inventory: 0 })}
+              disabled={bulkUpdateMutation.isPending}
+            >
+              Hidden
+            </Button>
+            <button onClick={() => setSelectedRows([])} className="ml-2 text-gray-500 hover:text-gray-700">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk status confirmation dialog */}
+      {bulkStatusConfirm && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setBulkStatusConfirm(null)}>
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-2">Confirm status change</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Set {selectedRows.length} product{selectedRows.length > 1 ? "s" : ""} to <strong>{bulkStatusConfirm.label}</strong>?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setBulkStatusConfirm(null)}>Cancel</Button>
+              <Button size="sm" onClick={confirmBulkStatusChange} disabled={bulkUpdateMutation.isPending}>
+                {bulkUpdateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-4 mb-4">
         <Button
           className="gap-2"
