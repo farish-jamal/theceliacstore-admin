@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import ActionMenu from "@/components/action_menu";
-import { Eye, Pencil, Trash2, Loader2, CheckCircle, XCircle, X } from "lucide-react";
+import { Eye, Pencil, Trash2, Loader2, CheckCircle, XCircle, X, IndianRupee, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CustomTable from "@/components/custom_table";
 import Typography from "@/components/typography";
@@ -45,6 +45,12 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
   const [bulkMigrating, setBulkMigrating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
   const [bulkStatusConfirm, setBulkStatusConfirm] = useState(null); // { label, updates }
+  const [priceModalOpen, setPriceModalOpen] = useState(false);
+  const [priceEdits, setPriceEdits] = useState({}); // { [productId]: { newPrice, newDiscountedPrice } }
+  const [priceModalStep, setPriceModalStep] = useState("edit"); // "edit" | "review"
+  const [priceModalError, setPriceModalError] = useState("");
+  const [priceUpdating, setPriceUpdating] = useState(false);
+  const [priceModalSort, setPriceModalSort] = useState("asc"); // "asc" | "desc"
 
   // Bulk status update
   const bulkUpdateMutation = useMutation({
@@ -102,6 +108,141 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
     setBulkProgress(0);
     setSelectedRows([]);
     queryClient.invalidateQueries(["products"]);
+  };
+
+  // Price modify helpers
+  const getCurrentPriceNum = (val) => {
+    if (val === undefined || val === null || val === "") return null;
+    if (typeof val === "object" && val.$numberDecimal !== undefined) {
+      const n = parseFloat(val.$numberDecimal);
+      return isNaN(n) ? null : n;
+    }
+    const n = parseFloat(val);
+    return isNaN(n) ? null : n;
+  };
+
+  const openPriceModal = () => {
+    setPriceEdits({});
+    setPriceModalStep("edit");
+    setPriceModalError("");
+    setPriceModalSort("asc");
+    setPriceModalOpen(true);
+  };
+
+  const togglePriceModalSort = () => {
+    setPriceModalSort((s) => (s === "asc" ? "desc" : "asc"));
+  };
+
+  const closePriceModal = () => {
+    setPriceModalOpen(false);
+    setPriceEdits({});
+    setPriceModalStep("edit");
+    setPriceModalError("");
+  };
+
+  const updatePriceEdit = (productId, field, value) => {
+    setPriceEdits((prev) => ({
+      ...prev,
+      [productId]: { ...(prev[productId] || {}), [field]: value },
+    }));
+    if (priceModalError) setPriceModalError("");
+  };
+
+  const getSelectedProducts = () => {
+    const list = selectedRows
+      .map((rowId) => products.find((p) => (p._id || `${products.indexOf(p)}`) === rowId))
+      .filter(Boolean);
+    list.sort((a, b) => {
+      const cmp = (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" });
+      return priceModalSort === "asc" ? cmp : -cmp;
+    });
+    return list;
+  };
+
+  const getChangedEntries = () => {
+    return getSelectedProducts().flatMap((p) => {
+      const edit = priceEdits[p._id];
+      if (!edit) return [];
+      const newPriceStr = (edit.newPrice ?? "").toString().trim();
+      if (!newPriceStr) return [];
+      const newPriceNum = parseFloat(newPriceStr);
+      if (isNaN(newPriceNum)) return [];
+      const currentPrice = getCurrentPriceNum(p.price);
+      const currentDisc = getCurrentPriceNum(p.discounted_price);
+      const flags = [];
+      if (currentPrice != null && currentPrice > 0) {
+        const pct = ((newPriceNum - currentPrice) / currentPrice) * 100;
+        if (Math.abs(pct) > 20) flags.push({ field: "price", pct });
+      }
+      // Auto-sync discounted_price unless a genuine discount currently exists
+      const hasGenuineDiscount =
+        currentDisc != null &&
+        currentDisc > 0 &&
+        currentPrice != null &&
+        currentDisc < currentPrice;
+      const autoSyncDisc = !hasGenuineDiscount;
+      return [{
+        product: p,
+        newPriceStr,
+        newPriceNum,
+        currentPrice,
+        currentDisc,
+        flags,
+        autoSyncDisc,
+      }];
+    });
+  };
+
+  const onReviewChanges = () => {
+    const changed = getChangedEntries();
+    if (changed.length === 0) {
+      setPriceModalError("No prices were changed");
+      return;
+    }
+    setPriceModalError("");
+    setPriceModalStep("review");
+  };
+
+  const onConfirmPriceUpdate = async () => {
+    const changed = getChangedEntries();
+    if (changed.length === 0) return;
+    setPriceUpdating(true);
+    let successCount = 0;
+    let errorCount = 0;
+    for (const entry of changed) {
+      try {
+        const formData = new FormData();
+        formData.append("price", entry.newPriceStr);
+        if (entry.autoSyncDisc) {
+          formData.append("discounted_price", entry.newPriceStr);
+        }
+        const result = await apiService({
+          endpoint: `${endpoints.product}/${entry.product._id}`,
+          method: "PUT",
+          data: formData,
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        if (result?.error || result?.success === false || !result?.response) {
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch (e) {
+        errorCount++;
+      }
+    }
+    setPriceUpdating(false);
+    if (errorCount === 0) {
+      toast.success(`${successCount} product${successCount === 1 ? "" : "s"} updated successfully`);
+      closePriceModal();
+      setSelectedRows([]);
+      queryClient.invalidateQueries(["products"]);
+    } else if (successCount > 0) {
+      toast.error(`${successCount} updated, ${errorCount} failed`);
+      queryClient.invalidateQueries(["products"]);
+    } else {
+      toast.error("Failed to update prices");
+    }
   };
 
   const onOpenDialog = (row) => {
@@ -327,12 +468,237 @@ const ProductsTable = ({ setProductLength, params, setParams }) => {
             >
               Hidden
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-white border-indigo-300 text-indigo-700 hover:bg-indigo-50 ml-1"
+              onClick={openPriceModal}
+              disabled={bulkUpdateMutation.isPending}
+            >
+              <IndianRupee className="w-4 h-4 mr-1" />
+              Modify Prices
+            </Button>
             <button onClick={() => setSelectedRows([])} className="ml-2 text-gray-500 hover:text-gray-700">
               <X size={16} />
             </button>
           </div>
         </div>
       )}
+
+      {/* Modify Prices modal */}
+      {priceModalOpen && (() => {
+        const selProducts = getSelectedProducts();
+        const changed = priceModalStep === "review" ? getChangedEntries() : [];
+        const flagged = changed.filter((c) => c.flags.length > 0);
+        return (
+          <div
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+            onClick={() => { if (!priceUpdating) closePriceModal(); }}
+          >
+            <div
+              className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white">
+                <div>
+                  <h3 className="text-lg font-semibold">Modify Prices</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-gray-500">
+                      {selProducts.length} product{selProducts.length === 1 ? "" : "s"} selected
+                      {priceModalStep === "review" && ` · ${changed.length} change${changed.length === 1 ? "" : "s"}`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={togglePriceModalSort}
+                      className="flex items-center gap-1 text-xs text-gray-700 hover:text-gray-900 px-2 py-0.5 border border-gray-300 rounded"
+                      aria-label="Toggle sort order"
+                    >
+                      Name {priceModalSort === "asc" ? "A→Z" : "Z→A"}
+                      {priceModalSort === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={closePriceModal}
+                  disabled={priceUpdating}
+                  className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {priceModalStep === "edit" && (
+                <div className="p-4">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-600 border-b border-gray-200">
+                          <th className="py-2 pr-3 font-medium">Product Name</th>
+                          <th className="py-2 px-3 font-medium">Current Price</th>
+                          <th className="py-2 pl-3 font-medium">New Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selProducts.map((p) => {
+                          const curPrice = getCurrentPriceNum(p.price);
+                          const edit = priceEdits[p._id] || {};
+                          return (
+                            <tr key={p._id} className="border-b border-gray-100 align-top">
+                              <td className="py-2 pr-3 max-w-[18rem]">
+                                <div
+                                  className="text-gray-900"
+                                  style={{
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                  }}
+                                  title={p.name}
+                                >
+                                  {p.name}
+                                </div>
+                              </td>
+                              <td className="py-2 px-3 text-gray-700">
+                                {curPrice != null ? `₹${curPrice}` : "—"}
+                              </td>
+                              <td className="py-2 pl-3">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="Enter new price"
+                                  value={edit.newPrice ?? ""}
+                                  onChange={(e) => updatePriceEdit(p._id, "newPrice", e.target.value)}
+                                  className="w-32 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {priceModalError && (
+                    <p className="mt-3 text-sm text-red-600">{priceModalError}</p>
+                  )}
+                </div>
+              )}
+
+              {priceModalStep === "review" && (
+                <div className="p-4 space-y-4">
+                  {flagged.length > 0 && (
+                    <div className="border border-red-300 bg-red-50 rounded-lg p-3">
+                      <h4 className="font-semibold text-red-700 mb-2">
+                        ⚠️ Please double-check these prices
+                      </h4>
+                      <div className="space-y-2">
+                        {flagged.map((c) => (
+                          <div key={c.product._id} className="text-sm bg-white rounded p-2 border border-red-200">
+                            <div className="font-medium text-gray-900 truncate" title={c.product.name}>
+                              {c.product.name}
+                            </div>
+                            <div className="mt-1 space-y-0.5 text-gray-700">
+                              {c.flags.map((f) => (
+                                <div key={f.field}>
+                                  <span className="text-gray-500">Price:</span>{" "}
+                                  ₹{c.currentPrice} → ₹{c.newPriceNum}{" "}
+                                  <span className={f.pct > 0 ? "text-red-600" : "text-orange-600"}>
+                                    ({f.pct > 0 ? "+" : ""}{f.pct.toFixed(1)}%)
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="border border-gray-200 rounded-lg p-3">
+                    <h4 className="font-semibold text-gray-800 mb-2">Changes to apply</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-gray-600 border-b border-gray-200">
+                            <th className="py-2 pr-3 font-medium">Product</th>
+                            <th className="py-2 pl-3 font-medium">Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {changed.map((c) => {
+                            const isFlagged = c.flags.length > 0;
+                            return (
+                              <tr
+                                key={c.product._id}
+                                className={`border-b border-gray-100 align-top ${isFlagged ? "bg-red-50/30" : ""}`}
+                              >
+                                <td className="py-2 pr-3 max-w-[18rem]">
+                                  <div
+                                    className="text-gray-900"
+                                    style={{
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
+                                    }}
+                                    title={c.product.name}
+                                  >
+                                    {c.product.name}
+                                  </div>
+                                  {!c.autoSyncDisc && (
+                                    <div className="text-[11px] text-gray-500 mt-0.5">
+                                      Discount preserved (current ₹{c.currentDisc})
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2 pl-3 text-gray-700">
+                                  <span className="text-gray-500">{c.currentPrice != null ? `₹${c.currentPrice}` : "—"}</span>
+                                  {" → "}
+                                  <span className="font-medium text-gray-900">₹{c.newPriceNum}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 sticky bottom-0 bg-white">
+                {priceModalStep === "edit" && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={closePriceModal} disabled={priceUpdating}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={onReviewChanges} disabled={priceUpdating}>
+                      Review Changes
+                    </Button>
+                  </>
+                )}
+                {priceModalStep === "review" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPriceModalStep("edit")}
+                      disabled={priceUpdating}
+                    >
+                      Back to Edit
+                    </Button>
+                    <Button size="sm" onClick={onConfirmPriceUpdate} disabled={priceUpdating}>
+                      {priceUpdating && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+                      Confirm &amp; Update
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Bulk status confirmation dialog */}
       {bulkStatusConfirm && (
